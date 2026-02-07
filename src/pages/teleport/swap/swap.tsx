@@ -347,8 +347,7 @@ function Swap() {
   };
 
   useAdviserTexts({
-    // defaultText: 'swap tokens',
-    defaultText: 'Launching Astroport and migrating the frontend.',
+    defaultText: 'swap tokens',
   });
 
   return (
