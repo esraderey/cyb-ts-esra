@@ -30,15 +30,19 @@ function AnalyticsProvider({ children }: { children: ReactNode }) {
       return undefined;
     }
 
-    init({
-      domain: PLAUSIBLE_DOMAIN,
-      trackLocalhost: false,
-      // Track outbound links automatically
-      // Track file downloads automatically
-    });
+    try {
+      init({
+        domain: PLAUSIBLE_DOMAIN,
+        trackLocalhost: false,
+        // Track outbound links automatically
+        // Track file downloads automatically
+      });
 
-    // Track initial page view
-    trackPageview();
+      // Track initial page view
+      trackPageview();
+    } catch (e) {
+      console.warn('Analytics init failed:', e);
+    }
 
     // Set up global click tracking
     const handleClick = (event: MouseEvent) => {
@@ -55,9 +59,13 @@ function AnalyticsProvider({ children }: { children: ReactNode }) {
         ) {
           const url = new URL(href);
           if (url.hostname !== window.location.hostname) {
-            trackEvent('Outbound Link: Click', {
-              props: { url: href },
-            });
+            try {
+              trackEvent('Outbound Link: Click', {
+                props: { url: href },
+              });
+            } catch {
+              // ignore
+            }
           }
         }
 
@@ -80,9 +88,13 @@ function AnalyticsProvider({ children }: { children: ReactNode }) {
           ];
           const extension = href.split('.').pop()?.toLowerCase();
           if (extension && fileExtensions.includes(extension)) {
-            trackEvent('File Download', {
-              props: { url: href, extension },
-            });
+            try {
+              trackEvent('File Download', {
+                props: { url: href, extension },
+              });
+            } catch {
+              // ignore
+            }
           }
         }
       }
@@ -92,7 +104,11 @@ function AnalyticsProvider({ children }: { children: ReactNode }) {
       if (analyticsElement) {
         const eventName = analyticsElement.getAttribute('data-analytics');
         if (eventName) {
-          trackEvent(eventName);
+          try {
+            trackEvent(eventName);
+          } catch {
+            // ignore
+          }
         }
       }
     };
@@ -115,7 +131,11 @@ function AnalyticsProvider({ children }: { children: ReactNode }) {
     // Skip initial render (already tracked above)
     const isInitialRender = !document.referrer && location.key === 'default';
     if (!isInitialRender) {
-      trackPageview();
+      try {
+        trackPageview();
+      } catch {
+        // ignore
+      }
     }
   }, [location.pathname, location.search]);
 
@@ -125,7 +145,11 @@ function AnalyticsProvider({ children }: { children: ReactNode }) {
         console.log('[Analytics Dev]', eventName, options);
         return;
       }
-      trackEvent(eventName, options);
+      try {
+        trackEvent(eventName, options);
+      } catch {
+        // ignore
+      }
     },
     []
   );
