@@ -315,7 +315,7 @@ class TxTracer {
     const id = this.createRandomId();
 
     const params = {
-      query: `tm.event='Tx' and ${Object.keys(query)
+      query: `tm.event='Tx' AND ${Object.keys(query)
         .map((key) => {
           return {
             key,
@@ -327,7 +327,7 @@ class TxTracer {
             typeof obj.value === 'string' ? `'${obj.value}'` : obj.value
           }`;
         })
-        .join(' and ')}`,
+        .join(' AND ')}`,
       page: '1',
       per_page: '1',
       order_by: 'desc',
@@ -382,7 +382,7 @@ class TxTracer {
             typeof obj.value === 'string' ? `'${obj.value}'` : obj.value
           }`;
         })
-        .join(' and '),
+        .join(' AND '),
       page: '1',
       per_page: '1',
       order_by: 'desc',
