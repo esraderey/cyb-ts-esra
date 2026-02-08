@@ -136,6 +136,24 @@ function HistoryContextProvider({ children }: { children: React.ReactNode }) {
       return item.status;
     }
 
+    // First, always check if recv_packet already happened (packet was completed)
+    const destRpc = findRpc(item.destChainId);
+    if (destRpc) {
+      const checkTracer = new TracerTx(destRpc, '/websocket');
+      try {
+        const result = await checkTracer.queryTx({
+          'recv_packet.packet_dst_channel': item.destChannelId,
+          'recv_packet.packet_sequence': item.sequence,
+        });
+        checkTracer.close();
+        if (result?.total_count !== '0') {
+          return StatusTx.COMPLETE;
+        }
+      } catch {
+        checkTracer.close();
+      }
+    }
+
     if (item.status === StatusTx.TIMEOUT) {
       const sourceChainId = findRpc(item.sourceChainId);
       if (!sourceChainId) return item.status;
@@ -170,10 +188,10 @@ function HistoryContextProvider({ children }: { children: React.ReactNode }) {
 
           // Even though the block is reached to the timeout height,
           // the receiving packet event could be delivered before the block timeout if the network connection is unstable.
-          // This it not the chain issue itself, jsut the issue from the frontend, it it impossible to ensure the network status entirely.
-          // To reduce this problem, just wait 10 second more even if the block is reached to the timeout height.
+          // This it not the chain issue itself, just the issue from the frontend, it is impossible to ensure the network status entirely.
+          // To reduce this problem, wait 30 seconds more for relay to complete (relay runs every 10s + indexing time).
           await new Promise((resolve) => {
-            setTimeout(resolve, 10000);
+            setTimeout(resolve, 30000);
           });
         })()
       );
