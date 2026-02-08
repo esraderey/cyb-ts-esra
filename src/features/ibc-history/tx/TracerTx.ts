@@ -73,6 +73,7 @@ class TxTracer {
     this.ws.onopen = this.onOpen;
     this.ws.onmessage = this.onMessage;
     this.ws.onclose = this.onClose;
+    this.ws.onerror = this.onError;
   }
 
   close() {
@@ -195,9 +196,37 @@ class TxTracer {
   };
 
   protected readonly onClose = (e: CloseEvent) => {
+    // Reject all pending queries and subscriptions when WebSocket closes
+    const error = new Error(`WebSocket closed: ${e.reason || 'connection lost'}`);
+
+    for (const [id, query] of this.pendingQueries) {
+      query.rejector(error);
+    }
+    this.pendingQueries.clear();
+
+    for (const [id, sub] of this.txSubscribes) {
+      sub.rejector(error);
+    }
+    this.txSubscribes.clear();
+
     for (const listener of this.listeners.close ?? []) {
       listener(e);
     }
+  };
+
+  protected readonly onError = (e: Event) => {
+    // Reject all pending queries and subscriptions on WebSocket error
+    const error = new Error('WebSocket error');
+
+    for (const [id, query] of this.pendingQueries) {
+      query.rejector(error);
+    }
+    this.pendingQueries.clear();
+
+    for (const [id, sub] of this.txSubscribes) {
+      sub.rejector(error);
+    }
+    this.txSubscribes.clear();
   };
 
   /**

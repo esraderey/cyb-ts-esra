@@ -161,13 +161,17 @@ function HistoryContextProvider({ children }: { children: React.ReactNode }) {
 
       const txTracer = new TracerTx(sourceChainId, '/websocket');
 
-      await txTracer.traceTx({
-        'timeout_packet.packet_src_channel': item.sourceChannelId,
-        'timeout_packet.packet_sequence': item.sequence,
-      });
-
-      txTracer.close();
-      return StatusTx.REFUNDED;
+      try {
+        await txTracer.traceTx({
+          'timeout_packet.packet_src_channel': item.sourceChannelId,
+          'timeout_packet.packet_sequence': item.sequence,
+        });
+        txTracer.close();
+        return StatusTx.REFUNDED;
+      } catch {
+        txTracer.close();
+        return item.status;
+      }
     }
 
     const blockSubscriber = getBlockSubscriber(item.destChainId);
@@ -211,19 +215,27 @@ function HistoryContextProvider({ children }: { children: React.ReactNode }) {
       })
     );
 
-    const result = await Promise.race(promises);
+    try {
+      const result = await Promise.race(promises);
 
-    if (timeoutUnsubscriber) {
-      timeoutUnsubscriber();
+      if (timeoutUnsubscriber) {
+        timeoutUnsubscriber();
+      }
+
+      txTracer.close();
+
+      if (result) {
+        return StatusTx.COMPLETE;
+      }
+
+      return StatusTx.TIMEOUT;
+    } catch {
+      if (timeoutUnsubscriber) {
+        timeoutUnsubscriber();
+      }
+      txTracer.close();
+      return item.status;
     }
-
-     txTracer.close();
-
-    if (result) {
-      return StatusTx.COMPLETE;
-    }
-
-    return StatusTx.TIMEOUT;
   };
 
   const useGetHistoriesItems = useCallback(() => {
@@ -253,6 +265,35 @@ function HistoryContextProvider({ children }: { children: React.ReactNode }) {
     getItem();
   }, [addressActive, update]);
 
+  // Trace pending/timeout items on initial load (only when address changes)
+  useEffect(() => {
+    const tracePendingItems = async () => {
+      if (addressActive) {
+        const items = await dbIbcHistory.historiesItems
+          .where({
+            address: addressActive.bech32,
+          })
+          .toArray();
+
+        items.forEach((item) => {
+          if (
+            item.status === StatusTx.PENDING ||
+            item.status === StatusTx.TIMEOUT
+          ) {
+            traceHistoryStatus(item).then((newStatus) => {
+              if (newStatus !== item.status) {
+                updateStatusByTxHash(item.txHash, newStatus);
+                setUpdate((i) => i + 1);
+              }
+            });
+          }
+        });
+      }
+    };
+    tracePendingItems();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [addressActive]);
+
   const pingTxsIbc = async (
     cliet: SigningStargateClient | SigningCyberClient,
     uncommitedTx: UncommitedTx
@@ -276,9 +317,19 @@ function HistoryContextProvider({ children }: { children: React.ReactNode }) {
     ping();
   };
 
-  const addHistoriesItem = (itemHistories: HistoriesItem) => {
-    dbIbcHistory.historiesItems.add(itemHistories);
+  const addHistoriesItem = async (itemHistories: HistoriesItem) => {
+    await dbIbcHistory.historiesItems.add(itemHistories);
     setUpdate((item) => item + 1);
+
+    // Automatically start tracing pending items
+    if (itemHistories.status === StatusTx.PENDING) {
+      traceHistoryStatus(itemHistories).then((newStatus) => {
+        if (newStatus !== itemHistories.status) {
+          updateStatusByTxHash(itemHistories.txHash, newStatus);
+          setUpdate((item) => item + 1);
+        }
+      });
+    }
   };
 
   const updateStatusByTxHash = async (txHash: string, status: StatusTx) => {
