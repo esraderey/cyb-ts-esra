@@ -139,18 +139,19 @@ function HistoryContextProvider({ children }: { children: React.ReactNode }) {
     // First, always check if recv_packet already happened (packet was completed)
     const destRpc = findRpc(item.destChainId);
     if (destRpc) {
-      const checkTracer = new TracerTx(destRpc, '/websocket');
       try {
-        const result = await checkTracer.queryTx({
-          'recv_packet.packet_dst_channel': item.destChannelId,
-          'recv_packet.packet_sequence': item.sequence,
-        });
-        checkTracer.close();
-        if (result?.total_count !== '0') {
-          return StatusTx.COMPLETE;
+        const query = `recv_packet.packet_dst_channel='${item.destChannelId}' AND recv_packet.packet_sequence='${item.sequence}'`;
+        const response = await fetch(
+          `${destRpc}/tx_search?query=${encodeURIComponent(query)}&per_page=1`
+        );
+        if (response.ok) {
+          const data = await response.json();
+          if (data?.result?.total_count !== '0') {
+            return StatusTx.COMPLETE;
+          }
         }
       } catch {
-        checkTracer.close();
+        // ignore, continue with normal flow
       }
     }
 
