@@ -175,6 +175,7 @@
     "@multiformats/multiaddr": "^11.4.0",
     "@nftstorage/ipfs-cluster": "^5.0.1",
     "@openrouter/ai-sdk-provider": "^0.0.5",
+    "@plausible-analytics/tracker": "^0.4.4",
     "@reduxjs/toolkit": "^1.9.3",
     "@storybook/addon-designs": "^7.0.4",
     "@tableflip/react-inspector": "^2.3.0",
