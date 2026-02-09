@@ -298,6 +298,9 @@ function HistoryContextProvider({ children }: { children: React.ReactNode }) {
     cliet: SigningStargateClient | SigningCyberClient,
     uncommitedTx: UncommitedTx
   ) => {
+    const MAX_RETRIES = 40; // ~60 seconds
+    let retryCount = 0;
+
     const ping = async () => {
       const response = await cliet.getTx(uncommitedTx.txHash);
       if (response) {
@@ -310,6 +313,13 @@ function HistoryContextProvider({ children }: { children: React.ReactNode }) {
             status: StatusTx.PENDING,
           });
         }
+        return;
+      }
+      retryCount += 1;
+      if (retryCount >= MAX_RETRIES) {
+        console.warn(
+          `pingTxsIbc: max retries reached for tx ${uncommitedTx.txHash}`
+        );
         return;
       }
       setTimeout(ping, 1500);
