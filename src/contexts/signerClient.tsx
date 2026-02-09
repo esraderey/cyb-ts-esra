@@ -154,9 +154,14 @@ function SigningClientProvider({ children }: { children: React.ReactNode }) {
   }, [initSigner]);
 
   useEffect(() => {
-    window.addEventListener('keplr_keystorechange', () => {
+    const handleKeystoreChange = () => {
       initSigner();
-    });
+    };
+
+    window.addEventListener('keplr_keystorechange', handleKeystoreChange);
+    return () => {
+      window.removeEventListener('keplr_keystorechange', handleKeystoreChange);
+    };
   }, [initSigner]);
 
   const getSignClientByChainId = useCallback(
