@@ -266,28 +266,60 @@ class TxTracer {
 
   // Query the tx and subscribe the tx.
   traceTx(
-    query: Uint8Array | Record<string, string | number | boolean>
+    query: Uint8Array | Record<string, string | number | boolean>,
+    {
+      timeoutMs = 120000,
+      connectionTimeoutMs = 15000,
+    }: { timeoutMs?: number; connectionTimeoutMs?: number } = {}
   ): Promise<any> {
-    return new Promise<any>((resolve) => {
-      // At first, try to query the tx at the same time of subscribing the tx.
-      // But, the querying's error will be ignored.
-      this.queryTx(query)
-        .then((result) => {
-          if (query instanceof Uint8Array) {
-            resolve(result);
-            return;
-          }
-
-          if (result?.total_count !== '0') {
-            resolve(result);
-          }
-        })
-        .catch(() => {
-          // noop
-        });
-
-      this.subscribeTx(query).then(resolve);
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(
+        () => reject(new Error(`traceTx timed out after ${timeoutMs}ms`)),
+        timeoutMs
+      );
     });
+
+    const connectionPromise =
+      this.readyState !== WsReadyState.OPEN
+        ? new Promise<void>((resolve, reject) => {
+            const connectionTimer = setTimeout(() => {
+              reject(
+                new Error(
+                  `WebSocket connection timed out after ${connectionTimeoutMs}ms`
+                )
+              );
+            }, connectionTimeoutMs);
+
+            this.addEventListener('open', () => {
+              clearTimeout(connectionTimer);
+              resolve();
+            });
+          })
+        : Promise.resolve();
+
+    const tracePromise = connectionPromise.then(
+      () =>
+        new Promise<any>((resolve) => {
+          this.queryTx(query)
+            .then((result) => {
+              if (query instanceof Uint8Array) {
+                resolve(result);
+                return;
+              }
+
+              if (result?.total_count !== '0') {
+                resolve(result);
+              }
+            })
+            .catch(() => {
+              // noop
+            });
+
+          this.subscribeTx(query).then(resolve);
+        })
+    );
+
+    return Promise.race([tracePromise, timeoutPromise]);
   }
 
   subscribeTx(
