@@ -130,15 +130,40 @@ function BackendProvider({ children }: { children: React.ReactNode }) {
 
     const channel = new RxBroadcastChannelListener(dispatch);
 
-    backgroundWorkerInstance.ipfsApi
-      .start(getIpfsOpts())
-      .then(() => {
-        setIpfsError(null);
-      })
-      .catch((err) => {
-        setIpfsError(err);
-        console.log(`☠️ Ipfs error: ${err}`);
-      });
+    const startIpfsWithRetry = async (
+      retries = 3,
+      delays = [5000, 15000, 45000]
+    ) => {
+      for (let attempt = 0; attempt <= retries; attempt++) {
+        try {
+          // eslint-disable-next-line no-await-in-loop
+          await backgroundWorkerInstance.ipfsApi.start(getIpfsOpts());
+          setIpfsError(null);
+          if (attempt > 0) {
+            console.log(`🔰 IPFS connected after ${attempt + 1} attempts`);
+          }
+          return;
+        } catch (err) {
+          if (attempt < retries) {
+            const delay = delays[attempt] || delays[delays.length - 1];
+            console.warn(
+              `⚠️ IPFS connection failed (attempt ${attempt + 1}/${retries + 1}), retrying in ${delay / 1000}s...`
+            );
+            // eslint-disable-next-line no-await-in-loop
+            await new Promise((resolve) => {
+              setTimeout(resolve, delay);
+            });
+          } else {
+            setIpfsError(err);
+            console.error(
+              `☠️ IPFS failed after ${retries + 1} attempts: ${err}`
+            );
+          }
+        }
+      }
+    };
+
+    startIpfsWithRetry();
 
     cozoDbWorkerInstance.init().then(() => {
       // const dbApi = createDbApi();
