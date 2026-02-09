@@ -60,6 +60,7 @@ import StudioWrapper from './features/studio/StudioWrapper';
 import Filtering from './pages/Settings/Filtering/Filtering';
 import Sphere from './pages/Sphere/Sphere';
 import { AnalyticsProvider } from './contexts/analytics';
+import ErrorBoundary from './components/ErrorBoundary/ErrorBoundary';
 
 type WrappedRouterProps = {
   children: React.ReactNode;
@@ -116,7 +117,7 @@ function AppRouter() {
             <Route index element={<OracleLanding />} />
             <Route path="/ide" element={<FreestyleIde />} />
 
-            <Route path="/robot/*" element={<Robot />} />
+            <Route path="/robot/*" element={<ErrorBoundary><Robot /></ErrorBoundary>} />
             <Route
               path="/ipfs"
               element={<Navigate to={routes.settings.path} />}
@@ -144,7 +145,7 @@ function AppRouter() {
             />
             <Route path="/search/:query" element={<ToOracleAsk />} />
 
-            <Route path="/senate/*" element={<GovernanceRoutes />} />
+            <Route path="/senate/*" element={<ErrorBoundary><GovernanceRoutes /></ErrorBoundary>} />
 
             {/* old links - start */}
             <Route path="/halloffame" element={<Navigate to="/sphere" />} />
@@ -155,7 +156,7 @@ function AppRouter() {
             <Route path="/mint" element={<Navigate to={routes.hfr.path} />} />
             {/* old links - end */}
 
-            <Route path="/sphere/*" element={<Sphere />} />
+            <Route path="/sphere/*" element={<ErrorBoundary><Sphere /></ErrorBoundary>} />
             {/* <Route path="/sphere/:chainId/*" element={<Sphere />} /> */}
 
             <Route path="/episode-1" element={<Story />} />
@@ -187,7 +188,7 @@ function AppRouter() {
             <Route path="/token/:tab" element={<Market />} />
             <Route path="/particles" element={<Objects />} />
 
-            <Route path="/teleport/*" element={<Teleport />} />
+            <Route path="/teleport/*" element={<ErrorBoundary><Teleport /></ErrorBoundary>} />
 
             <Route path="/warp" element={<WarpDashboardPools />} />
             <Route path="/warp/:tab" element={<Warp />} />
@@ -220,7 +221,7 @@ function AppRouter() {
 
             <Route path="/keys" element={<Keys />} />
 
-            <Route path="/settings/*" element={<Settings />} />
+            <Route path="/settings/*" element={<ErrorBoundary><Settings /></ErrorBoundary>} />
 
             <Route path={routes.social.path} element={<Social />} />
 
