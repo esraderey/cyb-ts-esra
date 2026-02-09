@@ -17,12 +17,9 @@ import { accountsKeplr } from 'src/utils/utils';
 import usePrevious from 'src/hooks/usePrevious';
 import { RPC_URL, CHAIN_ID } from 'src/constants/config';
 import { Networks } from 'src/types/networks';
-import defaultNetworks from 'src/constants/defaultNetworks';
-
-// TODO: interface for keplr and OfflineSigner
-// type SignerType = OfflineSigner & {
-//   keplr: Keplr;
-// };
+import defaultNetworks, {
+  getHealthyRpcUrl,
+} from 'src/constants/defaultNetworks';
 
 type SignerClientContextType = {
   readonly signingClient: Option<SigningCyberClient>;
@@ -37,7 +34,8 @@ type SignerClientContextType = {
 async function createClient(
   signer: OfflineSigner
 ): Promise<SigningCyberClient> {
-  const client = await SigningCyberClient.connectWithSigner(RPC_URL, signer);
+  const rpcUrl = await getHealthyRpcUrl(CHAIN_ID, RPC_URL);
+  const client = await SigningCyberClient.connectWithSigner(rpcUrl, signer);
   return client;
 }
 
@@ -173,8 +171,9 @@ function SigningClientProvider({ children }: { children: React.ReactNode }) {
       }
 
       const { RPC_URL: _RPC_URL } = defaultNetworks[chainId];
+      const rpcUrl = await getHealthyRpcUrl(chainId, _RPC_URL);
 
-      return SigningCyberClient.connectWithSigner(_RPC_URL, offlineSigner);
+      return SigningCyberClient.connectWithSigner(rpcUrl, offlineSigner);
     },
     [getOfflineSigner]
   );
