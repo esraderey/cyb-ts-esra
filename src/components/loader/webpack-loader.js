@@ -1,5 +1,10 @@
 /* eslint-disable  */
-const SingleEntryPlugin = require('webpack/lib/SingleEntryPlugin');
+let EntryPlugin;
+try {
+  EntryPlugin = require('@rspack/core').EntryPlugin;
+} catch {
+  EntryPlugin = require('webpack/lib/SingleEntryPlugin');
+}
 
 class BootloaderPlugin {
   constructor(htmlWebpackPlugin, options) {
@@ -89,7 +94,7 @@ class BootloaderPlugin {
       compiler.hooks.make.tapAsync(
         'BootloaderPlugin',
         (compilation, callback) => {
-          const entry = SingleEntryPlugin.createDependency(
+          const entry = EntryPlugin.createDependency(
             this.options.script,
             this.options.name
           );
