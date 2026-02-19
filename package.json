@@ -5,9 +5,6 @@
   "scripts": {
     "generate-graphql-types": "yarn graphql-codegen --config ./codegen.ts"
   },
-  "resolutions": {
-    "three-bmfont-text": "3.0.1"
-  },
   "browserslist": "> 0.5%, last 2 versions, not dead",
   "license": "ISC",
   "devDependencies": {
@@ -208,7 +205,7 @@
     "react": "^18.0.0",
     "react-codemirror2": "^7.2.1",
     "react-dom": "^18.0.0",
-    "react-force-graph": "^1.39.5",
+    "react-force-graph-3d": "^1.24",
     "react-helmet": "^6.1.0",
     "react-localization": "^1.0.15",
     "react-markdown": "^7.1.1",

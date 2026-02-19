@@ -14,15 +14,15 @@
 
 - Runtime: **Deno 2** (task runner, build, dev server, lint)
 - Bundler: **Rspack 1.7** (Rust-based)
-- Package manager: **Yarn 1** (только для `yarn install` — `deno install` блокирован aframe GitHub dep)
+- Package manager: **Deno** (`deno install` для node_modules)
 - Test runner: отсутствует (Jest удалён, тесты в src/ временно не запускаются)
 - Framework: React 18, TypeScript 5
 
 ## Сборка
 
 ```bash
-# Установка зависимостей (только через yarn):
-yarn install
+# Установка зависимостей:
+deno install
 
 # Все команды через Deno:
 deno task start        # dev server (HTTPS, HMR)
@@ -34,10 +34,9 @@ deno task serve        # serve production build
 ```
 
 Важно:
-- `deno install` не работает из-за `aframe` -> `three-bmfont-text` GitHub dependency
 - `DENO_NO_PACKAGE_JSON=1` используется во всех deno tasks чтобы Deno не парсил package.json
 - `package.json scripts` удалены (кроме `generate-graphql-types`) — всё в `deno.json`
-- `resolutions` в package.json форсят `three-bmfont-text@3.0.1` из npm вместо GitHub
+- Yarn больше не нужен — `react-force-graph` заменён на `react-force-graph-3d` (без aframe/VR/AR)
 
 ## Структура
 

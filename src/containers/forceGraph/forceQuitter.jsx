@@ -1,7 +1,7 @@
 /* eslint-disable eqeqeq */
 /* eslint-disable no-nested-ternary */
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { ForceGraph3D } from 'react-force-graph';
+import ForceGraph3D from 'react-force-graph-3d';
 import { Loading } from '../../components';
 
 import useGetDataGql from './hooks';

@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { ForceGraph3D } from 'react-force-graph';
+import ForceGraph3D from 'react-force-graph-3d';
 import GraphHoverInfo from './GraphHoverInfo/GraphHoverInfo';
 
 import styles from './CyberlinksGraph.module.scss';
