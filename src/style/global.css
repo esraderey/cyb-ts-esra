@@ -16,10 +16,6 @@ html {
   }
 }
 
-*:not(input):not(textarea) {
-  text-transform: lowercase;
-}
-
 body {
   padding: 0;
   overflow-y: scroll; /* prevent content jumping when scroll appears */
