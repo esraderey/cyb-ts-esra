@@ -26,7 +26,7 @@ export const getFollowsAsCid = async (
     },
   });
 
-  if (!response.txResponses.length) {
+  if (!response?.txResponses?.length) {
     return [];
   }
 
@@ -61,7 +61,7 @@ export const getFollowers = async (
     },
   });
 
-  if (!response.txResponses.length) {
+  if (!response?.txResponses?.length) {
     return [];
   }
 
