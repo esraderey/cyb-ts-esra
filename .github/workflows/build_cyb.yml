@@ -18,7 +18,7 @@ jobs:
         with:
           deno-version: v2.x
 
-      - name: Set up Node.js (for npx/rspack)
+      - name: Set up Node.js (rspack runtime)
         uses: actions/setup-node@v4
         with:
           node-version: '22'

@@ -1,7 +1,7 @@
-# install + build (Deno for deps, Node for npx/rspack)
+# Deno for deps + task runner, Node for rspack runtime
 FROM denoland/deno:2 as build
 
-# Install Node.js (needed for npx rspack)
+# Install Node.js (rspack/eslint binaries are Node scripts)
 RUN apt-get update && apt-get install -y curl && \
     curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
     apt-get install -y nodejs && \
