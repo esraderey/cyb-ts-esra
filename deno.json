@@ -1,13 +1,13 @@
 {
   "tasks": {
-    "start": "DENO_NO_PACKAGE_JSON=1 npx rspack serve --config=rspack.config.dev.js",
-    "build": "DENO_NO_PACKAGE_JSON=1 npx rspack build --config=rspack.config.prod.js && cp -r public/* build/",
-    "build-ipfs": "DENO_NO_PACKAGE_JSON=1 IPFS_DEPLOY=1 npx rspack build --config=rspack.config.prod.js --mode production",
-    "build-report": "DENO_NO_PACKAGE_JSON=1 npx rspack build --config=rspack.config.prod.js --profile --json > stats.json",
-    "lint": "DENO_NO_PACKAGE_JSON=1 npx eslint src/",
-    "lint:fix": "DENO_NO_PACKAGE_JSON=1 npx eslint src/ --fix --ext .js,.jsx,.ts,.tsx",
-    "storybook": "DENO_NO_PACKAGE_JSON=1 npx storybook dev -p 6006",
-    "serve": "DENO_NO_PACKAGE_JSON=1 npx serve -s build",
-    "generate-graphql-types": "DENO_NO_PACKAGE_JSON=1 npx graphql-codegen --config ./codegen.ts"
+    "start": "DENO_NO_PACKAGE_JSON=1 ./node_modules/.bin/rspack serve --config=rspack.config.dev.js",
+    "build": "DENO_NO_PACKAGE_JSON=1 ./node_modules/.bin/rspack build --config=rspack.config.prod.js && cp -r public/* build/",
+    "build-ipfs": "DENO_NO_PACKAGE_JSON=1 IPFS_DEPLOY=1 ./node_modules/.bin/rspack build --config=rspack.config.prod.js --mode production",
+    "build-report": "DENO_NO_PACKAGE_JSON=1 ./node_modules/.bin/rspack build --config=rspack.config.prod.js --profile --json > stats.json",
+    "lint": "DENO_NO_PACKAGE_JSON=1 ./node_modules/.bin/eslint src/",
+    "lint:fix": "DENO_NO_PACKAGE_JSON=1 ./node_modules/.bin/eslint src/ --fix --ext .js,.jsx,.ts,.tsx",
+    "storybook": "DENO_NO_PACKAGE_JSON=1 ./node_modules/.bin/storybook dev -p 6006",
+    "serve": "DENO_NO_PACKAGE_JSON=1 ./node_modules/.bin/serve -s build",
+    "generate-graphql-types": "DENO_NO_PACKAGE_JSON=1 ./node_modules/.bin/graphql-codegen --config ./codegen.ts"
   }
 }
