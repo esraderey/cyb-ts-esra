@@ -5,8 +5,8 @@
     <meta content="IE=Edge" http-equiv="X-UA-Compatible" />
 
     <!-- git -->
-    <meta name="commit-version" content="<%= process.env.COMMIT_SHA %>" />
-    <meta name="branch" content="<%= process.env.BRANCH %>" />
+    <meta name="commit-version" content="<%= COMMIT_SHA %>" />
+    <meta name="branch" content="<%= BRANCH %>" />
 
     <meta
       name="viewport"
@@ -32,7 +32,7 @@
     <meta property="og:image" content="/images/preview.png" />
 
     <script>
-      if ('<%= process.env.NODE_ENV %>' === 'production') {
+      if ('<%= NODE_ENV %>' === 'production') {
         const commitSHA = document.querySelector(
           'meta[name="commit-version"]'
         ).content;
@@ -64,13 +64,12 @@
         <div id="progress-data"></div>
       </div>
     </div>
+    <script>
+      const script = document.createElement('script');
+      script.src = 'https://metrics.cyb.ai/js/script.js';
+      script.setAttribute('data-domain', location.host);
+      script.defer = true;
+      document.body.appendChild(script);
+    </script>
   </body>
-
-  <script>
-    const script = document.createElement('script');
-    script.src = 'https://metrics.cyb.ai/js/script.js';
-    script.setAttribute('data-domain', location.host);
-    script.defer = true;
-    document.body.appendChild(script);
-  </script>
 </html>

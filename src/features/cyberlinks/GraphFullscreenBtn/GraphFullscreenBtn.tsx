@@ -16,7 +16,7 @@ export function useFullscreen() {
 
   useEventListener('fullscreenchange', handleFullscreenChange, document);
 
-  function toggleFullscreen(element?: HTMLElement = document) {
+  function toggleFullscreen(element: HTMLElement = document.documentElement) {
     if (!document.fullscreenElement) {
       element.requestFullscreen();
     } else if (document.exitFullscreen) {

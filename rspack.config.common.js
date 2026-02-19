@@ -1,11 +1,9 @@
 const path = require('path');
-const NodePolyfillPlugin = require('node-polyfill-webpack-plugin');
-const webpack = require('webpack');
-const { CleanWebpackPlugin } = require('clean-webpack-plugin');
-const HTMLWebpackPlugin = require('html-webpack-plugin');
-const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-const WorkerUrlPlugin = require('worker-url/plugin');
-const BootloaderPlugin = require('./src/components/loader/webpack-loader');
+const rspack = require('@rspack/core');
+const NodePolyfillPlugin = require('@rspack/plugin-node-polyfill');
+// TODO: BootloaderPlugin uses deep webpack internals (compilation.addChunk, chunk.moveModule)
+// that are not compatible with Rspack. Disabled until rewritten.
+// const BootloaderPlugin = require('./src/components/loader/webpack-loader');
 
 require('dotenv').config();
 
@@ -24,6 +22,7 @@ const config = {
     path: path.join(__dirname, '/build'),
     publicPath: process.env.IPFS_DEPLOY ? './' : '/',
     assetModuleFilename: '[name].[hash:10][ext]',
+    clean: true,
   },
   resolve: {
     fallback: {
@@ -62,9 +61,8 @@ const config = {
     },
   },
   plugins: [
-    new WorkerUrlPlugin(),
     new NodePolyfillPlugin(),
-    new webpack.NormalModuleReplacementPlugin(/node:/, (resource) => {
+    new rspack.NormalModuleReplacementPlugin(/node:/, (resource) => {
       const mod = resource.request.replace(/^node:/, '');
       switch (mod) {
         case 'buffer':
@@ -77,28 +75,28 @@ const config = {
           throw new Error(`Not found ${mod}`);
       }
     }),
-    new CleanWebpackPlugin(),
-    new BootloaderPlugin(HTMLWebpackPlugin, {
-      script: './src/components/loader/loader.js',
-    }),
-
-    new HTMLWebpackPlugin({
+    // BootloaderPlugin disabled — see TODO above
+    new rspack.HtmlRspackPlugin({
       template: path.join(__dirname, 'src', 'index.html'),
       favicon: 'src/image/favicon.ico',
       filename: 'index.html',
       ...(process.env.IPFS_DEPLOY ? { publicPath: './' } : {}),
       inject: 'body',
+      templateParameters: {
+        COMMIT_SHA: process.env.COMMIT_SHA || '',
+        BRANCH: process.env.BRANCH || '',
+        NODE_ENV: process.env.NODE_ENV || 'development',
+      },
     }),
-    new MiniCssExtractPlugin({
+    new rspack.CssExtractRspackPlugin({
       filename: '[name].css',
       chunkFilename: '[id].css',
     }),
-    new webpack.DefinePlugin({
+    new rspack.DefinePlugin({
       'process.env.IPFS_DEPLOY': JSON.stringify(process.env.IPFS_DEPLOY),
       'process.env.COMMIT_SHA': JSON.stringify(process.env.COMMIT_SHA),
       'process.env.BRANCH': JSON.stringify(process.env.BRANCH),
       'process.env.CHAIN_ID': JSON.stringify(process.env.CHAIN_ID),
-
       'process.env.RPC_URL': JSON.stringify(process.env.RPC_URL),
       'process.env.LCD_URL': JSON.stringify(process.env.LCD_URL),
       'process.env.WEBSOCKET_URL': JSON.stringify(process.env.WEBSOCKET_URL),
@@ -111,8 +109,7 @@ const config = {
       'process.env.DENOM_LIQUID': JSON.stringify(process.env.DENOM_LIQUID),
       'process.env.BECH32_PREFIX': JSON.stringify(process.env.BECH32_PREFIX),
     }),
-    new webpack.ProvidePlugin({
-      // ProvidePlugin configuration
+    new rspack.ProvidePlugin({
       cyblog: ['src/utils/logging/cyblog.ts', 'default'],
     }),
   ],
@@ -123,10 +120,22 @@ const config = {
         exclude: /node_modules/,
         include: [/src/, /netlify\/mocks/],
         use: {
-          loader: 'esbuild-loader',
+          loader: 'builtin:swc-loader',
           options: {
-            loader: 'tsx',
-            target: 'es2020', // Syntax to compile to (see options below for possible values)
+            jsc: {
+              parser: {
+                syntax: 'typescript',
+                tsx: true,
+              },
+              transform: {
+                react: {
+                  runtime: 'automatic',
+                },
+              },
+            },
+            env: {
+              targets: 'chrome >= 87, firefox >= 78, safari >= 14, edge >= 88',
+            },
           },
         },
       },
@@ -138,7 +147,7 @@ const config = {
       {
         test: /\.css$/,
         use: [
-          MiniCssExtractPlugin.loader,
+          rspack.CssExtractRspackPlugin.loader,
           {
             loader: 'css-loader',
             options: {
@@ -155,7 +164,6 @@ const config = {
           {
             loader: 'css-loader',
             options: {
-              // modules: true,
               importLoaders: 1,
               modules: {
                 localIdentName: '[name]__[local]___[hash:base64:5]',
@@ -193,7 +201,7 @@ const config = {
       },
       {
         test: /\.cozo$/,
-        use: 'raw-loader',
+        type: 'asset/source',
       },
       {
         test: /\.(graphql|gql)$/,
