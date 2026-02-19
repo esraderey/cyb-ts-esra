@@ -35,5 +35,5 @@ storybook-static
 .netlify
 
 # Claude Code
-.claude
+.claude/*
 !.claude/plans/
