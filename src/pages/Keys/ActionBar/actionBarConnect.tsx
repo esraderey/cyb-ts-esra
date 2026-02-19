@@ -13,6 +13,7 @@ import { PATTERN_CYBER } from 'src/constants/patterns';
 import { useSigningClient } from 'src/contexts/signerClient';
 import { useDispatch } from 'react-redux';
 import { addAddressPocket } from 'src/redux/features/pocket';
+import { toHex } from 'src/utils/encoding';
 import { AccountValue } from 'src/types/defaultAccount';
 import { CHAIN_ID } from 'src/constants/config';
 import { KEY_TYPE } from '../types';
@@ -118,7 +119,7 @@ function ActionBarConnect({
       const { bech32Address, pubKey, name } = await signer.keplr.getKey(
         CHAIN_ID
       );
-      const pk = Buffer.from(pubKey).toString('hex');
+      const pk = toHex(new Uint8Array(pubKey));
 
       const accounts: AccountValue = {
         bech32: bech32Address,

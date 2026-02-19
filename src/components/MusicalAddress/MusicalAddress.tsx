@@ -2,6 +2,7 @@ import { useMemo, useState, useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { Link } from 'react-router-dom';
 import { Tooltip } from 'src/components';
+import { toHex } from 'src/utils/encoding';
 import styles from './MusicalAddress.module.scss';
 import {
   DICTIONARY_ABC,
@@ -32,8 +33,7 @@ function MusicalAddress({ address: bech32, disabled }: Props) {
     if (address !== null) {
       const { address: sliceAddress } = address;
       const arrayAddress = sliceAddress.split('');
-      const bufferAddress = Buffer.from(sliceAddress)
-        .toString('hex')
+      const bufferAddress = toHex(new TextEncoder().encode(sliceAddress))
         .replace(/[a-z]/g, '')
         .split('');
       arrayAddress.forEach((item, index) => {

@@ -4,6 +4,7 @@ import { Sha256 } from '@cosmjs/crypto';
 import { useIbcDenom } from 'src/contexts/ibcDenom';
 import { SigningStargateClient } from '@cosmjs/stargate';
 import { CHAIN_ID } from 'src/constants/config';
+import { toHex } from 'src/utils/encoding';
 import networkList from '../../../utils/networkListIbc';
 import useSubscribersBlokIbc from './useSubscribersBlokIbc';
 
@@ -20,9 +21,7 @@ const ibcDenom = (paths, coinMinimalDenom) => {
   const prefix = prefixes.join('/');
   const denom = `${prefix}/${coinMinimalDenom}`;
 
-  return `ibc/${Buffer.from(sha256(Buffer.from(denom)))
-    .toString('hex')
-    .toUpperCase()}`;
+  return `ibc/${toHex(sha256(denom)).toUpperCase()}`;
 };
 
 function useGetBalancesIbc(client: SigningStargateClient, denom) {

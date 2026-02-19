@@ -11,6 +11,7 @@ import { ActionBarSteps } from '../components';
 import { useBackend } from 'src/contexts/backend/backend';
 import NodeIsLoadingButton from 'src/components/btnGrd/NodeIsLoadingButton/NodeIsLoadingButton';
 import { CHAIN_ID } from 'src/constants/config';
+import { toHex } from 'src/utils/encoding';
 
 const {
   STEP_INIT,
@@ -76,7 +77,7 @@ function ActionBar({
       const { bech32Address, pubKey, name } = await signer.keplr.getKey(
         chainId
       );
-      const pk = Buffer.from(pubKey).toString('hex');
+      const pk = toHex(new Uint8Array(pubKey));
 
       const localStoragePocketAccount = localStorage.getItem('pocketAccount');
       const localStorageCount = localStorage.getItem('count');

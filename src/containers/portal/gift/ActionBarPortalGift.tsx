@@ -6,6 +6,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { GasPrice } from '@cosmjs/launchpad';
 import { toAscii, toBase64 } from '@cosmjs/encoding';
+import { toHex } from 'src/utils/encoding';
 import { useSigningClient } from 'src/contexts/signerClient';
 import { getKeplr } from 'src/utils/keplrUtils';
 import useWaitForTransaction from 'src/hooks/useWaitForTransaction';
@@ -243,7 +244,7 @@ function ActionBarPortalGift({
 
       const address = accounts[0];
       const message = `${owner}:${CONSTITUTION_HASH}`;
-      const msg = `0x${Buffer.from(message, 'utf8').toString('hex')}`;
+      const msg = `0x${toHex(new TextEncoder().encode(message))}`;
       const from = address;
 
       if (addresses !== null && Object.keys(addresses).length > 0) {

@@ -1,6 +1,5 @@
 const path = require('path');
 const rspack = require('@rspack/core');
-const NodePolyfillPlugin = require('@rspack/plugin-node-polyfill');
 // TODO: BootloaderPlugin uses deep webpack internals (compilation.addChunk, chunk.moveModule)
 // that are not compatible with Rspack. Disabled until rewritten.
 // const BootloaderPlugin = require('./src/components/loader/webpack-loader');
@@ -61,7 +60,6 @@ const config = {
     },
   },
   plugins: [
-    new NodePolyfillPlugin(),
     new rspack.NormalModuleReplacementPlugin(/node:/, (resource) => {
       const mod = resource.request.replace(/^node:/, '');
       switch (mod) {
@@ -111,6 +109,8 @@ const config = {
     }),
     new rspack.ProvidePlugin({
       cyblog: ['src/utils/logging/cyblog.ts', 'default'],
+      process: 'process/browser',
+      Buffer: ['buffer', 'Buffer'],
     }),
   ],
   module: {

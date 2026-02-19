@@ -142,7 +142,7 @@ export const parseArrayLikeToDetails = async (
   // clarify text-content subtypes
   if (response.type === 'text') {
     // render svg as image
-    if (!isStringData && isSvg(Buffer.from(rawData))) {
+    if (!isStringData && isSvg(new Uint8Array(rawData))) {
       return {
         ...response,
         type: 'image',
@@ -211,8 +211,8 @@ export const contentToUint8Array = async (
 ): Promise<Uint8Array> => {
   return new Uint8Array(
     typeof content === 'string'
-      ? Buffer.from(content)
-      : await content.arrayBuffer()
+      ? new TextEncoder().encode(content)
+      : new Uint8Array(await content.arrayBuffer())
   );
 };
 

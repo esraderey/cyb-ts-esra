@@ -9,6 +9,7 @@ import { Option } from 'src/types';
 import { Key } from '@keplr-wallet/types';
 import { AccountValue } from 'src/types/defaultAccount';
 import { BECH32_PREFIX, BECH32_PREFIX_VAL_CONS } from 'src/constants/config';
+import { toHex } from 'src/utils/encoding';
 import { LEDGER } from './config';
 
 import cyberSpace from '../image/large-purple-circle.png';
@@ -327,9 +328,7 @@ function getDenomHash(path, baseDenom) {
   const parts = path.split('/');
   parts.push(baseDenom);
   const newPath = parts.slice().join('/');
-  return `ibc/${Buffer.from(sha256(Buffer.from(newPath)))
-    .toString('hex')
-    .toUpperCase()}`;
+  return `ibc/${toHex(sha256(newPath)).toUpperCase()}`;
 }
 
 function convertAmount(rawAmount, precision) {
@@ -397,7 +396,7 @@ const getNowUtcTime = (): number => {
 
 const accountsKeplr = (accounts: Key): AccountValue => {
   const { pubKey, bech32Address, name } = accounts;
-  const pk = Buffer.from(pubKey).toString('hex');
+  const pk = toHex(new Uint8Array(pubKey));
 
   return {
     bech32: bech32Address,

@@ -14,7 +14,7 @@ export const isCID = (cid: string): boolean => {
 // eslint-disable-next-line import/prefer-default-export
 export const getIpfsHash = (string: string): Promise<ParticleCid> =>
   new Promise((resolve, reject) => {
-    const unixFsFile = new Unixfs('file', Buffer.from(string));
+    const unixFsFile = new Unixfs('file', new TextEncoder().encode(string));
 
     const buffer = unixFsFile.marshal();
     DAGNode.create(buffer, (err, dagNode) => {

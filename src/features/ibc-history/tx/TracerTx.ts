@@ -1,4 +1,4 @@
-import { Buffer } from 'buffer';
+import { toHex, toBase64 } from 'src/utils/encoding';
 
 import { TxEventMap, WsReadyState } from './types';
 
@@ -197,7 +197,9 @@ class TxTracer {
 
   protected readonly onClose = (e: CloseEvent) => {
     // Reject all pending queries and subscriptions when WebSocket closes
-    const error = new Error(`WebSocket closed: ${e.reason || 'connection lost'}`);
+    const error = new Error(
+      `WebSocket closed: ${e.reason || 'connection lost'}`
+    );
 
     for (const [id, query] of this.pendingQueries) {
       query.rejector(error);
@@ -329,9 +331,7 @@ class TxTracer {
       const id = this.createRandomId();
 
       const params = {
-        query: `tm.event='Tx' AND tx.hash='${Buffer.from(query)
-          .toString('hex')
-          .toUpperCase()}'`,
+        query: `tm.event='Tx' AND tx.hash='${toHex(query).toUpperCase()}'`,
       };
 
       return new Promise<unknown>((resolve, reject) => {
@@ -397,7 +397,7 @@ class TxTracer {
   ): Promise<any> {
     if (query instanceof Uint8Array) {
       return this.query('tx', {
-        hash: Buffer.from(query).toString('base64'),
+        hash: toBase64(query),
         prove: false,
       });
     }
