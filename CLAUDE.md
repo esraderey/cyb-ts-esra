@@ -12,31 +12,32 @@
 
 ## Стек
 
-- Runtime: **Deno 2** (task runner) + Node.js (для yarn install — пока есть GitHub deps в транзитивных зависимостях)
-- Bundler: **Rspack 5.75** (Rust-based, drop-in замена Webpack)
-- Package manager: **Yarn 1** (для установки npm deps) + **deno task** (для запуска скриптов)
-- Test runner: Jest (будет заменён на Deno test — Фаза 4)
+- Runtime: **Deno 2** (task runner, build, dev server, lint)
+- Bundler: **Rspack 1.7** (Rust-based)
+- Package manager: **Yarn 1** (только для `yarn install` — `deno install` блокирован aframe GitHub dep)
+- Test runner: отсутствует (Jest удалён, тесты в src/ временно не запускаются)
 - Framework: React 18, TypeScript 5
 
 ## Сборка
 
 ```bash
-# Предпочтительный способ (Deno):
+# Установка зависимостей (только через yarn):
+yarn install
+
+# Все команды через Deno:
 deno task start        # dev server (HTTPS, HMR)
 deno task build        # production build
+deno task build-ipfs   # IPFS production build
 deno task lint         # eslint
-
-# Legacy (Yarn, тоже работает):
-yarn start
-yarn build
-yarn lint
-
-# Установка зависимостей (только через yarn, не deno install):
-yarn install
+deno task storybook    # storybook dev
+deno task serve        # serve production build
 ```
 
-Важно: `deno install` не работает из-за `aframe` -> `three-bmfont-text` GitHub dependency.
-Используется `DENO_NO_PACKAGE_JSON=1` чтобы Deno не парсил package.json.
+Важно:
+- `deno install` не работает из-за `aframe` -> `three-bmfont-text` GitHub dependency
+- `DENO_NO_PACKAGE_JSON=1` используется во всех deno tasks чтобы Deno не парсил package.json
+- `package.json scripts` удалены (кроме `generate-graphql-types`) — всё в `deno.json`
+- `resolutions` в package.json форсят `three-bmfont-text@3.0.1` из npm вместо GitHub
 
 ## Структура
 
@@ -46,7 +47,7 @@ yarn install
 - `src/features/` — фичи (feature-sliced подход)
 - `src/services/` — сервисы (IPFS, backend, scripting, etc.)
 - `src/redux/` — Redux store
-- `src/utils/` — утилиты
+- `src/utils/` — утилиты (encoding.ts — замена Buffer для Web APIs)
 - `src/contexts/` — React context providers
 - `src/hooks/` — кастомные хуки
 - `src/generated/` — сгенерированные GraphQL типы
@@ -57,3 +58,10 @@ yarn install
 - CSP: Content-Security-Policy задана в `src/index.html`
 - Scripting output: DOMPurify санитизация Rune script content_result в `src/services/scripting/services/postProcessing.ts`
 - Secrets: хранятся в localStorage (unencrypted) — ключ `secrets`
+
+## Node polyfills
+
+- `@rspack/plugin-node-polyfill` удалён — был глобальный полифилл всех Node API
+- `src/utils/encoding.ts` — замена Buffer.from() на Web APIs (toHex, toBase64, toBytes, fromBytes)
+- `ProvidePlugin` точечно инжектит `process` и `Buffer` для сторонних пакетов
+- `resolve.fallback` в rspack конфиге — полифиллы для сторонних пакетов (crypto, stream, etc.)

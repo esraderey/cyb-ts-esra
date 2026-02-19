@@ -5,6 +5,9 @@
   "scripts": {
     "generate-graphql-types": "yarn graphql-codegen --config ./codegen.ts"
   },
+  "resolutions": {
+    "three-bmfont-text": "3.0.1"
+  },
   "browserslist": "> 0.5%, last 2 versions, not dead",
   "license": "ISC",
   "devDependencies": {
@@ -107,7 +110,8 @@
     "uint8arrays": "^4.0.3",
     "unist-util-visit": "^5.0.0",
     "uuid": "^8.3.2",
-    "webpack-bundle-analyzer": "^4.10.2"
+    "webpack-bundle-analyzer": "^4.10.2",
+    "webpack-merge": "^5.7.3"
   },
   "dependencies": {
     "@ai-sdk/openai": "^0.0.63",
