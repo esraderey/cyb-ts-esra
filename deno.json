@@ -7,6 +7,7 @@
     "lint": "DENO_NO_PACKAGE_JSON=1 npx eslint src/",
     "lint:fix": "DENO_NO_PACKAGE_JSON=1 npx eslint src/ --fix --ext .js,.jsx,.ts,.tsx",
     "storybook": "DENO_NO_PACKAGE_JSON=1 npx storybook dev -p 6006",
-    "serve": "DENO_NO_PACKAGE_JSON=1 npx serve -s build"
+    "serve": "DENO_NO_PACKAGE_JSON=1 npx serve -s build",
+    "generate-graphql-types": "DENO_NO_PACKAGE_JSON=1 npx graphql-codegen --config ./codegen.ts"
   }
 }

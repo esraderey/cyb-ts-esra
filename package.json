@@ -2,9 +2,6 @@
   "name": "cyb",
   "version": "1.0.0",
   "description": "",
-  "scripts": {
-    "generate-graphql-types": "yarn graphql-codegen --config ./codegen.ts"
-  },
   "browserslist": "> 0.5%, last 2 versions, not dead",
   "license": "ISC",
   "devDependencies": {
@@ -104,7 +101,6 @@
     "uint8arrays": "^4.0.3",
     "unist-util-visit": "^5.0.0",
     "uuid": "^8.3.2",
-    "webpack-bundle-analyzer": "^4.10.2",
     "webpack-merge": "^5.7.3"
   },
   "dependencies": {
