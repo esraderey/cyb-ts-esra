@@ -7,7 +7,7 @@ const commonConfig = require('./rspack.config.common');
 module.exports = merge(commonConfig, {
   mode: 'development',
   devServer: {
-    https: true,
+    server: 'https',
     host: 'localhost',
     port: process.env.PORT_APP || '3001',
     hot: true,
