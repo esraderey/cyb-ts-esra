@@ -1,0 +1,11 @@
+{
+  "tasks": {
+    "start": "DENO_NO_PACKAGE_JSON=1 npx rspack serve --config=rspack.config.dev.js",
+    "build": "DENO_NO_PACKAGE_JSON=1 npx rspack build --config=rspack.config.prod.js && cp -r public/* build/",
+    "build-ipfs": "DENO_NO_PACKAGE_JSON=1 IPFS_DEPLOY=1 npx rspack build --config=rspack.config.prod.js --mode production",
+    "lint": "DENO_NO_PACKAGE_JSON=1 npx eslint src/",
+    "lint:fix": "DENO_NO_PACKAGE_JSON=1 npx eslint src/ --fix --ext .js,.jsx,.ts,.tsx",
+    "test": "DENO_NO_PACKAGE_JSON=1 npx jest --transformIgnorePatterns --verbose",
+    "storybook": "DENO_NO_PACKAGE_JSON=1 npx storybook dev -p 6006"
+  }
+}

@@ -5,22 +5,33 @@
 Все утверждённые планы сохраняются в `.claude/plans/`, а не во временные папки.
 Файл `reference/roadmap.md` — общий roadmap проекта.
 
-## Стек (текущий -> целевой)
+## Стек
 
-- Runtime: Node.js 18 -> Deno 2
-- Bundler: Webpack 5 -> Rspack (потом возможно Vite)
-- Package manager: Yarn 1 -> Deno (npm-совместимый)
-- Test runner: Jest -> Deno test
-- Framework: React 18, TypeScript 5 (остаётся)
+- Runtime: **Deno 2** (task runner) + Node.js (для yarn install — пока есть GitHub deps в транзитивных зависимостях)
+- Bundler: **Rspack 5.75** (Rust-based, drop-in замена Webpack)
+- Package manager: **Yarn 1** (для установки npm deps) + **deno task** (для запуска скриптов)
+- Test runner: Jest (будет заменён на Deno test — Фаза 4)
+- Framework: React 18, TypeScript 5
 
 ## Сборка
 
 ```bash
-yarn start        # dev server
-yarn build        # production build
-yarn lint         # eslint
-yarn test         # jest
+# Предпочтительный способ (Deno):
+deno task start        # dev server (HTTPS, HMR)
+deno task build        # production build
+deno task lint         # eslint
+
+# Legacy (Yarn, тоже работает):
+yarn start
+yarn build
+yarn lint
+
+# Установка зависимостей (только через yarn, не deno install):
+yarn install
 ```
+
+Важно: `deno install` не работает из-за `aframe` -> `three-bmfont-text` GitHub dependency.
+Используется `DENO_NO_PACKAGE_JSON=1` чтобы Deno не парсил package.json.
 
 ## Структура
 
@@ -35,7 +46,9 @@ yarn test         # jest
 - `src/hooks/` — кастомные хуки
 - `src/generated/` — сгенерированные GraphQL типы
 
-## Известные проблемы
+## Безопасность
 
-- TS ошибка: `reflect-metadata` в tsconfig.json types (не установлен пакет)
-- `text-transform: lowercase` убран из global.css (было на всех элементах)
+- Iframe: sandbox атрибут обязателен для любого IPFS/gateway контента
+- CSP: Content-Security-Policy задана в `src/index.html`
+- Scripting output: DOMPurify санитизация Rune script content_result в `src/services/scripting/services/postProcessing.ts`
+- Secrets: хранятся в localStorage (unencrypted) — ключ `secrets`

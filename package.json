@@ -2,11 +2,6 @@
   "name": "cyb",
   "version": "1.0.0",
   "description": "",
-  "engines": {
-    "node": ">=18",
-    "yarn": ">=1.22.19"
-  },
-  "packageManager": "yarn@1.22.19",
   "scripts": {
     "start": "rspack serve --config=rspack.config.dev.js",
     "build": "rspack build --config=rspack.config.prod.js && yarn copy-public",
