@@ -7,7 +7,7 @@ import {
   ReactNode,
 } from 'react';
 import { useLocation } from 'react-router-dom';
-import { init, trackPageview, trackEvent } from '@plausible-analytics/tracker';
+import { init, track } from '@plausible-analytics/tracker';
 import { isDevEnv } from 'src/utils/dev';
 
 const PLAUSIBLE_DOMAIN = 'cyb.ai';
@@ -33,13 +33,10 @@ function AnalyticsProvider({ children }: { children: ReactNode }) {
     try {
       init({
         domain: PLAUSIBLE_DOMAIN,
-        trackLocalhost: false,
-        // Track outbound links automatically
-        // Track file downloads automatically
+        captureOnLocalhost: false,
+        outboundLinks: true,
+        fileDownloads: true,
       });
-
-      // Track initial page view
-      trackPageview();
     } catch (e) {
       console.warn('Analytics init failed:', e);
     }
@@ -60,7 +57,7 @@ function AnalyticsProvider({ children }: { children: ReactNode }) {
           const url = new URL(href);
           if (url.hostname !== window.location.hostname) {
             try {
-              trackEvent('Outbound Link: Click', {
+              track('Outbound Link: Click', {
                 props: { url: href },
               });
             } catch {
@@ -89,7 +86,7 @@ function AnalyticsProvider({ children }: { children: ReactNode }) {
           const extension = href.split('.').pop()?.toLowerCase();
           if (extension && fileExtensions.includes(extension)) {
             try {
-              trackEvent('File Download', {
+              track('File Download', {
                 props: { url: href, extension },
               });
             } catch {
@@ -105,7 +102,7 @@ function AnalyticsProvider({ children }: { children: ReactNode }) {
         const eventName = analyticsElement.getAttribute('data-analytics');
         if (eventName) {
           try {
-            trackEvent(eventName);
+            track(eventName, {});
           } catch {
             // ignore
           }
@@ -132,7 +129,7 @@ function AnalyticsProvider({ children }: { children: ReactNode }) {
     const isInitialRender = !document.referrer && location.key === 'default';
     if (!isInitialRender) {
       try {
-        trackPageview();
+        track('pageview', {});
       } catch {
         // ignore
       }
@@ -146,7 +143,7 @@ function AnalyticsProvider({ children }: { children: ReactNode }) {
         return;
       }
       try {
-        trackEvent(eventName, options);
+        track(eventName, options || {});
       } catch {
         // ignore
       }
