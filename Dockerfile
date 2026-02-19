@@ -1,12 +1,15 @@
-# install (yarn still needed for npm deps with GitHub references)
-FROM node:22-slim as install
-WORKDIR /usr/src/app
-COPY package.json yarn.lock ./
-RUN yarn install
-
-# build (Deno as runtime)
+# install + build (Deno for deps, Node for npx/rspack)
 FROM denoland/deno:2 as build
+
+# Install Node.js (needed for npx rspack)
+RUN apt-get update && apt-get install -y curl && \
+    curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
+    apt-get install -y nodejs && \
+    rm -rf /var/lib/apt/lists/*
+
 WORKDIR /usr/src/app
-COPY --from=install /usr/src/app/node_modules ./node_modules
+COPY package.json deno.json ./
+RUN deno install
+
 COPY . .
 RUN deno task build
