@@ -27,5 +27,27 @@
 
 ---
 
-## После Rspack (Фаза 1)
-- TODO
+## После Rspack (Фаза 1) — Rspack 5.75.0 + Node.js 22
+
+Дата: 2026-02-19
+Коммит: c651ba69
+
+### Production build
+- **Время:** 9.55s (wall clock ~10s)
+- **Rspack compilation:** 8680ms
+- **Размер build/:** 96MB
+
+### Сравнение
+| Метрика | Webpack | Rspack | Разница |
+|---------|---------|--------|---------|
+| Compilation | 96.8s | 8.7s | **11.1x быстрее** |
+| Wall clock | 101s | 9.5s | **10.6x быстрее** |
+| Размер build/ | 123MB | 96MB | **-22%** |
+| JS файлов | 24 | 15 | -37% |
+
+### Warnings (безвредные)
+- `libsodium-sumo`: `__dirname` is mocked (4 warnings)
+
+### Временно отключено
+- BootloaderPlugin (несовместим с Rspack compilation API)
+- WorkboxPlugin/InjectManifest (использует webpack.EntryPlugin внутри)
