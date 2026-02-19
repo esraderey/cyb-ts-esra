@@ -56,7 +56,6 @@
     "postcss-media-minmax": "^5.0.0",
     "postcss-preset-env": "^8.0.1",
     "prettier": "^2.5.1",
-    "prop-types": "^15.6.2",
     "react-iframe": "^1.8.0",
     "react-infinite-scroll-component": "^6.1.0",
     "react-json-editor-ajrm": "^2.5.13",
