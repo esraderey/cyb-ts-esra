@@ -59,6 +59,7 @@ function Movie() {
         id="iframeCid"
         className={styles.iframeCid}
         src={linkMovie}
+        sandbox="allow-scripts"
       />
     </div>
   );

@@ -1,3 +1,4 @@
+import DOMPurify from 'dompurify';
 import {
   IPFSContentDetails,
   IPFSContentDetailsMutated,
@@ -53,18 +54,14 @@ export async function postProcessIpfContent(
     }
 
     if (mutation.action === 'content_result') {
-      // update meta to reflect new content
-      // const meta = {
-      //   type: 'file',
-      //   size: mutation.content?.length,
-      //   sizeLocal: mutation.content?.length,
-      //   mime: 'text/plain',
-      //   contentType: 'text',
-      // } as IPFSContentMeta;
+      const sanitized =
+        typeof mutation.content === 'string'
+          ? DOMPurify.sanitize(mutation.content)
+          : mutation.content;
       return {
         ...details,
-        content: mutation.content,
-        text: mutation.content,
+        content: sanitized,
+        text: sanitized,
         mutation: 'modified',
       };
     }
