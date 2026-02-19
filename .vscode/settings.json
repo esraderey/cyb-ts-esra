@@ -12,7 +12,6 @@
     "Ipfs",
     "Keplr",
     "negentropy",
-    "stylelint",
     "superintelligence",
     "websockets",
     "cyberver",
@@ -30,7 +29,5 @@
   },
   "css.validate": false,
   "less.validate": false,
-  "scss.validate": false,
-  "stylelint.snippet": ["css", "scss", "postcss"],
-  "stylelint.validate": ["css", "scss", "postcss"]
+  "scss.validate": false
 }
