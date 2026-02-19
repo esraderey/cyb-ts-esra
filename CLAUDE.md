@@ -5,6 +5,11 @@
 После каждого коммита — запустить dev server (`deno task start`) и показать результат на localhost.
 Пользователь хочет видеть, что изменения работают, прежде чем двигаться дальше.
 
+## Git
+
+- **Push только по запросу** — никогда не пушить без явного указания пользователя
+- **Атомарные коммиты** — один коммит на одну функцию/изменение, не смешивать несвязанные правки
+
 ## Планы и решения
 
 Все утверждённые планы сохраняются в `.claude/plans/`, а не во временные папки.
@@ -29,7 +34,6 @@ deno task start        # dev server (HTTPS, HMR)
 deno task build        # production build
 deno task build-ipfs   # IPFS production build
 deno task lint         # eslint
-deno task storybook    # storybook dev
 deno task serve        # serve production build
 ```
 
