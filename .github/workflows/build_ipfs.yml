@@ -18,13 +18,13 @@ jobs:
         with:
           deno-version: v2.x
 
-      - name: Set up Node.js (for yarn install)
+      - name: Set up Node.js (for npx/rspack)
         uses: actions/setup-node@v4
         with:
           node-version: '22'
 
       - name: Install dependencies
-        run: yarn install
+        run: deno install
 
       - name: Build cyb for IPFS
         run: deno task build-ipfs
