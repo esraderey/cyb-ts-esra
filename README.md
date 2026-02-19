@@ -25,10 +25,9 @@ example of [random citizen](https://cyb.ai/pgraph/bostrom1d8754xqa9245pctlfcyv8e
 # build
 
 ```sh
-$ yarn install
-$ yarn start
+$ deno install
+$ deno task start
 ```
-then pray that node.js will build something
 
 # join
 
