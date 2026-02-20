@@ -1,20 +1,17 @@
-import { useEffect, useMemo, useState } from 'react';
-import axios from 'axios';
-import useAdviserTexts from 'src/features/adviser/useAdviserTexts';
-import { useSearchParams } from 'react-router-dom';
-import { isDevEnv } from 'src/utils/dev';
 import { Endpoints } from '@octokit/types';
+import axios from 'axios';
+import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import useAdviserTexts from 'src/features/adviser/useAdviserTexts';
+import { isDevEnv } from 'src/utils/dev';
 
-type CommitsResponse =
-  Endpoints['GET /repos/{owner}/{repo}/commits']['response'];
+type CommitsResponse = Endpoints['GET /repos/{owner}/{repo}/commits']['response'];
 type Commit = CommitsResponse['data'][0];
 
 const currentCommitSHA = document.head
   .querySelector('meta[name="commit-version"]')
   ?.getAttribute('content');
-const currentBranch = document.head
-  .querySelector('meta[name="branch"]')
-  ?.getAttribute('content');
+const currentBranch = document.head.querySelector('meta[name="branch"]')?.getAttribute('content');
 
 async function getLastCommit() {
   const response = await axios.get<unknown, CommitsResponse>(
@@ -59,9 +56,12 @@ function NewVersionChecker() {
     request();
 
     // check every 3 minutes
-    const interval = setInterval(() => {
-      request();
-    }, 3 * 60 * 1000);
+    const interval = setInterval(
+      () => {
+        request();
+      },
+      3 * 60 * 1000
+    );
 
     return () => {
       clearInterval(interval);
@@ -69,10 +69,7 @@ function NewVersionChecker() {
   }, []);
 
   const newVersionAvailable =
-    !isDevEnv() &&
-    lastCommit &&
-    currentCommitSHA &&
-    lastCommit.sha !== currentCommitSHA;
+    !isDevEnv() && lastCommit && currentCommitSHA && lastCommit.sha !== currentCommitSHA;
 
   const text = useMemo(() => {
     if (!newVersionAvailable) {

@@ -1,22 +1,22 @@
-import { useEffect, useState } from 'react';
 import { Pane } from '@cybercongress/gravity';
-import { ActionBar as ActionBarContainer } from 'src/components';
-import { useSigningClient } from 'src/contexts/signerClient';
-import imgKeplr from 'src/image/keplr-icon.svg';
-import imgRead from 'src/image/duplicate-outline.svg';
-import Button from 'src/components/btnGrd';
+import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { RootState } from 'src/redux/store';
+import { ActionBar as ActionBarContainer } from 'src/components';
+import Button from 'src/components/btnGrd';
+import { useSigningClient } from 'src/contexts/signerClient';
+import imgRead from 'src/image/duplicate-outline.svg';
+import imgKeplr from 'src/image/keplr-icon.svg';
 import { deleteAddress } from 'src/redux/features/pocket';
+import { removeSecret } from 'src/redux/reducers/scripting';
+import { RootState } from 'src/redux/store';
 import BroadcastChannelSender from 'src/services/backend/channels/BroadcastChannelSender';
+import { KEY_LIST_TYPE, KEY_TYPE } from '../types';
 import ActionBarConnect from './actionBarConnect';
 import ActionBarKeplr from './actionBarKeplr';
-import { KEY_LIST_TYPE, KEY_TYPE } from '../types';
-import { removeSecret } from 'src/redux/reducers/scripting';
 
 const STAGE_INIT = 1;
 const STAGE_CONNECT = 2;
-const STAGE_SEND_LEDGER = 3.1;
+const _STAGE_SEND_LEDGER = 3.1;
 const STAGE_SEND_KEPLR = 4.1;
 const STAGE_SEND_READ_ONLY = 5.1;
 
@@ -74,9 +74,7 @@ function ActionBar({
   const [connect, setConnect] = useState(false);
 
   const dispatch = useDispatch();
-  const { accounts, defaultAccount } = useSelector(
-    (store: RootState) => store.pocket
-  );
+  const { accounts, defaultAccount } = useSelector((store: RootState) => store.pocket);
 
   useEffect(() => {
     if (stage === STAGE_INIT) {
@@ -87,8 +85,7 @@ function ActionBar({
           setTypeActionBar('tweet');
           break;
 
-        case selectCard.indexOf('pubkey') !== -1 ||
-          hoverCard.indexOf('pubkey') !== -1:
+        case selectCard.indexOf('pubkey') !== -1 || hoverCard.indexOf('pubkey') !== -1:
           changeActionBar(selectAccount);
           break;
 
@@ -98,7 +95,7 @@ function ActionBar({
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectCard, hoverCard, selectAccount]);
+  }, [selectCard, hoverCard, selectAccount, changeActionBar, stage]);
 
   useEffect(() => {
     if (defaultAccountsKeys !== null && selectAccount !== null) {
@@ -109,7 +106,7 @@ function ActionBar({
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [defaultAccounts, selectAccount]);
+  }, [selectAccount, defaultAccountsKeys]);
 
   useEffect(() => {
     if (selectAccount !== null) {
@@ -135,9 +132,7 @@ function ActionBar({
   async function changeDefaultAccounts() {
     const accountName =
       accounts &&
-      Object.entries(accounts).find(
-        (entry) => entry[1]?.cyber?.bech32 === selectedAddress
-      )?.[0];
+      Object.entries(accounts).find((entry) => entry[1]?.cyber?.bech32 === selectedAddress)?.[0];
 
     if (accountName) {
       const broadcastChannel = new BroadcastChannelSender();
@@ -167,19 +162,13 @@ function ActionBar({
   };
 
   const buttonConnect = (
-    <Button
-      style={{ margin: '0 10px' }}
-      onClick={() => setStage(STAGE_CONNECT)}
-    >
+    <Button style={{ margin: '0 10px' }} onClick={() => setStage(STAGE_CONNECT)}>
       add new key
     </Button>
   );
 
   const buttonActivate = (
-    <Button
-      style={{ margin: '0 10px' }}
-      onClick={() => changeDefaultAccounts()}
-    >
+    <Button style={{ margin: '0 10px' }} onClick={() => changeDefaultAccounts()}>
       Activate
     </Button>
   );
@@ -256,12 +245,7 @@ function ActionBar({
         <ActionBarContainer>
           <Pane>
             {connect && buttonConnect}
-            {keplr && (
-              <ButtonImgText
-                img={imgKeplr}
-                onClick={() => setStage(STAGE_SEND_KEPLR)}
-              />
-            )}
+            {keplr && <ButtonImgText img={imgKeplr} onClick={() => setStage(STAGE_SEND_KEPLR)} />}
             {makeActive && buttonActivate}
           </Pane>
         </ActionBarContainer>
@@ -273,10 +257,7 @@ function ActionBar({
         <ActionBarContainer>
           <Pane>
             {connect && buttonConnect}
-            <ButtonImgText
-              img={imgRead}
-              onClick={() => setStage(STAGE_SEND_READ_ONLY)}
-            />
+            <ButtonImgText img={imgRead} onClick={() => setStage(STAGE_SEND_READ_ONLY)} />
             {makeActive && buttonActivate}
           </Pane>
         </ActionBarContainer>

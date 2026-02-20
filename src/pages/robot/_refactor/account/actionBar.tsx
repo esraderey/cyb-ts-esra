@@ -1,39 +1,31 @@
-import React, { Component } from 'react';
 import { ActionBar } from '@cybercongress/gravity';
-import { PATTERN_IPFS_HASH } from 'src/constants/patterns';
-
-import { sendCyberlink } from 'src/services/neuron/neuronApi';
-import { CID_FOLLOW, CID_TWEET } from 'src/constants/app';
-import { routes } from 'src/routes';
+import React, { Component } from 'react';
 import { createSearchParams } from 'react-router-dom';
-import { AccountValue } from 'src/types/defaultAccount';
+import { CID_FOLLOW, CID_TWEET } from 'src/constants/app';
+import { PATTERN_IPFS_HASH } from 'src/constants/patterns';
 import { useBackend } from 'src/contexts/backend/backend';
-import { useSigningClient } from 'src/contexts/signerClient';
 import { useQueryClient } from 'src/contexts/queryClient';
+import { useSigningClient } from 'src/contexts/signerClient';
+import { routes } from 'src/routes';
+import { sendCyberlink } from 'src/services/neuron/neuronApi';
 import { getTxs } from 'src/services/transactions/lcd';
-import withIpfsAndKeplr from '../../../../hocs/withIpfsAndKeplr';
-
-import { LEDGER } from '../../../../utils/config';
+import { AccountValue } from 'src/types/defaultAccount';
 import {
-  TransactionSubmitted,
+  ActionBar as ActionBarComp,
+  ActionBarContentText,
+  Button,
   Confirmed,
+  Dots,
   RewardsDelegators,
   StartStageSearchActionBar,
   TransactionError,
-  Dots,
-  ActionBarContentText,
-  ActionBar as ActionBarComp,
-  Button,
+  TransactionSubmitted,
 } from '../../../../components';
+import withIpfsAndKeplr from '../../../../hocs/withIpfsAndKeplr';
+import { LEDGER } from '../../../../utils/config';
 
-const {
-  STAGE_INIT,
-  STAGE_READY,
-  STAGE_SUBMITTED,
-  STAGE_CONFIRMING,
-  STAGE_CONFIRMED,
-  STAGE_ERROR,
-} = LEDGER;
+const { STAGE_INIT, STAGE_READY, STAGE_SUBMITTED, STAGE_CONFIRMING, STAGE_CONFIRMED, STAGE_ERROR } =
+  LEDGER;
 
 type Props = {
   defaultAccount: AccountValue;
@@ -126,9 +118,7 @@ class ActionBarContainer extends Component<Props> {
               return;
             }
 
-            const dataTotalRewards = await queryClient.delegationTotalRewards(
-              address
-            );
+            const dataTotalRewards = await queryClient.delegationTotalRewards(address);
 
             if (dataTotalRewards?.rewards) {
               const { rewards } = dataTotalRewards;
@@ -139,8 +129,7 @@ class ActionBarContainer extends Component<Props> {
                 }
               });
 
-              const gasLimitsRewards =
-                100000 * Object.keys(validatorAddress).length;
+              const gasLimitsRewards = 100000 * Object.keys(validatorAddress).length;
               const feeRewards = {
                 amount: [],
                 gas: gasLimitsRewards.toString(),
@@ -334,9 +323,7 @@ class ActionBarContainer extends Component<Props> {
           return (
             <StartStageSearchActionBar
               onClickBtn={this.onClickSend}
-              contentHash={
-                file !== null && file !== undefined ? file.name : contentHash
-              }
+              contentHash={file !== null && file !== undefined ? file.name : contentHash}
               onChangeInputContentHash={this.onChangeInput}
               textBtn="Tweet"
               placeholder="What's happening?"

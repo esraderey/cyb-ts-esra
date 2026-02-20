@@ -1,7 +1,7 @@
 import cx from 'classnames';
-import { $TsFixMe } from 'src/types/tsfix';
 import React, { ComponentProps } from 'react';
 import { Link } from 'react-router-dom';
+import { $TsFixMe } from 'src/types/tsfix';
 import { Dots } from '../ui/Dots';
 import styles from './Button.module.scss';
 
@@ -128,9 +128,7 @@ function Button({
         ) : (
           <>
             {text || children}
-            {img && (
-              <img style={{ width: 20, height: 20 }} alt="img" src={img} />
-            )}
+            {img && <img style={{ width: 20, height: 20 }} alt="img" src={img} />}
           </>
         )}
       </GradientContainer>

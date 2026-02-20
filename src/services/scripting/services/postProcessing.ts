@@ -1,13 +1,9 @@
 import DOMPurify from 'dompurify';
-import {
-  IPFSContentDetails,
-  IPFSContentDetailsMutated,
-} from 'src/services/ipfs/types';
-
-import { QueuePriority } from 'src/services/QueueManager/types';
-import { parseArrayLikeToDetails } from 'src/services/ipfs/utils/content';
-import { ParticleCid } from 'src/types/base';
 import { IpfsApi } from 'src/services/backend/workers/background/api/ipfsApi';
+import { IPFSContentDetails, IPFSContentDetailsMutated } from 'src/services/ipfs/types';
+import { parseArrayLikeToDetails } from 'src/services/ipfs/utils/content';
+import { QueuePriority } from 'src/services/QueueManager/types';
+import { ParticleCid } from 'src/types/base';
 import { RuneEngine } from '../engine';
 
 /**
@@ -38,10 +34,7 @@ export async function postProcessIpfContent(
       const result = await ipfsApi.enqueueAndWait(mutation.cid, {
         priority: QueuePriority.URGENT,
       });
-      const mutatedDetails = await parseArrayLikeToDetails(
-        result.result,
-        mutation.cid
-      );
+      const mutatedDetails = await parseArrayLikeToDetails(result.result, mutation.cid);
       // console.log('----cid_result', cid, details, mutation, result);
 
       if (result) {

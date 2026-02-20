@@ -1,35 +1,27 @@
-import { Helia, Pin, createHelia } from 'helia';
-import { IDBBlockstore } from 'blockstore-idb';
-import { IDBDatastore } from 'datastore-idb';
-import { Libp2p, createLibp2p } from 'libp2p';
 import { noise } from '@chainsafe/libp2p-noise';
 import { yamux } from '@chainsafe/libp2p-yamux';
+import { IDBBlockstore } from 'blockstore-idb';
+import { IDBDatastore } from 'datastore-idb';
+import { createHelia, Helia, Pin } from 'helia';
+import { createLibp2p } from 'libp2p';
+
 // import { mplex } from '@libp2p/mplex';
 
-import { circuitRelayTransport } from 'libp2p/circuit-relay';
-import { UnixFS, unixfs, AddOptions } from '@helia/unixfs';
+import { AddOptions, UnixFS, unixfs } from '@helia/unixfs';
 import { bootstrap } from '@libp2p/bootstrap';
 import { webRTC, webRTCDirect } from '@libp2p/webrtc';
 import { webSockets } from '@libp2p/websockets';
 import { webTransport } from '@libp2p/webtransport';
-import { identifyService } from 'libp2p/identify';
 import { multiaddr, protocols } from '@multiformats/multiaddr';
 import { LsResult } from 'ipfs-core-types/src/pin';
-
-import {
-  AbortOptions,
-  CatOptions,
-  IpfsNodeType,
-  IpfsFileStats,
-  IpfsNode,
-} from '../../types';
+import { circuitRelayTransport } from 'libp2p/circuit-relay';
+import { identifyService } from 'libp2p/identify';
+import { CYBER_GATEWAY_URL } from '../../config';
+import { AbortOptions, CatOptions, IpfsFileStats, IpfsNode, IpfsNodeType } from '../../types';
 // import { all } from '@libp2p/websockets/filters';
 import { stringToCid } from '../../utils/cid';
-import { CYBER_GATEWAY_URL } from '../../config';
 
-async function* mapToLsResult(
-  iterable: AsyncIterable<Pin>
-): AsyncIterable<LsResult> {
+async function* mapToLsResult(iterable: AsyncIterable<Pin>): AsyncIterable<LsResult> {
   // eslint-disable-next-line no-restricted-syntax
   for await (const item of iterable) {
     const { cid, metadata } = item;
@@ -37,10 +29,7 @@ async function* mapToLsResult(
   }
 }
 
-const libp2pFactory = async (
-  datastore: IDBDatastore,
-  bootstrapList: string[] = []
-) => {
+const libp2pFactory = async (datastore: IDBDatastore, bootstrapList: string[] = []) => {
   const libp2p = await createLibp2p({
     datastore,
     // addresses: {
@@ -221,10 +210,7 @@ class HeliaNode implements IpfsNode {
       const fileName = content.name;
       const arrayBuffer = await content.arrayBuffer();
       const data = new Uint8Array(arrayBuffer);
-      cid = await this.fs!.addFile(
-        { path: fileName, content: data },
-        optionsV0
-      );
+      cid = await this.fs!.addFile({ path: fileName, content: data }, optionsV0);
     } else {
       const data = new TextEncoder().encode(content);
       cid = await this.fs!.addBytes(data, optionsV0);
@@ -238,9 +224,7 @@ class HeliaNode implements IpfsNode {
     const cid_ = stringToCid(cid);
     const isPinned = await this.node?.pins.isPinned(cid_, options);
     if (!isPinned) {
-      const pinResult = (
-        await this.node?.pins.add(cid_, options)
-      )?.cid.toString();
+      const _pinResult = (await this.node?.pins.add(cid_, options))?.cid.toString();
       // console.log('------pin', pinResult);
     }
     // console.log('------pinned', cid, isPinned);
@@ -248,9 +232,7 @@ class HeliaNode implements IpfsNode {
   }
 
   async getPeers() {
-    return this.node!.libp2p!.getConnections().map((c) =>
-      c.remotePeer.toString()
-    );
+    return this.node!.libp2p!.getConnections().map((c) => c.remotePeer.toString());
   }
 
   async stop() {
@@ -262,7 +244,7 @@ class HeliaNode implements IpfsNode {
   }
 
   async connectPeer(address: string) {
-    const conn = await this.node!.libp2p!.dial(multiaddr(address));
+    const _conn = await this.node!.libp2p!.dial(multiaddr(address));
     return true;
   }
 
@@ -273,8 +255,7 @@ class HeliaNode implements IpfsNode {
 
   async info() {
     const id = this.node!.libp2p.peerId.toString();
-    const agentVersion = this.node!.libp2p!.services!.identify!.host!
-      .agentVersion as string;
+    const agentVersion = this.node!.libp2p!.services!.identify!.host!.agentVersion as string;
     return { id, agentVersion, repoSize: -1 };
   }
 }

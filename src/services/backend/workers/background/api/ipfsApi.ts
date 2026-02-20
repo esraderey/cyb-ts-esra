@@ -1,25 +1,13 @@
-import { proxy } from 'comlink';
-import { BehaviorSubject, Subject } from 'rxjs';
-import QueueManager from 'src/services/QueueManager/QueueManager';
-import {
-  QueueItemCallback,
-  QueueItemOptions,
-} from 'src/services/QueueManager/types';
+import { BehaviorSubject } from 'rxjs';
 import BroadcastChannelSender from 'src/services/backend/channels/BroadcastChannelSender';
 import { initIpfsNode } from 'src/services/ipfs/node/factory';
-
-import {
-  CybIpfsNode,
-  IpfsContentType,
-  IpfsOptsType,
-} from 'src/services/ipfs/types';
+import { CybIpfsNode, IpfsContentType, IpfsOptsType } from 'src/services/ipfs/types';
+import QueueManager from 'src/services/QueueManager/QueueManager';
+import { QueueItemCallback, QueueItemOptions } from 'src/services/QueueManager/types';
 import { RuneEngine } from 'src/services/scripting/engine';
 
 // eslint-disable-next-line import/prefer-default-export
-export const createIpfsApi = (
-  rune: RuneEngine,
-  broadcastApi: BroadcastChannelSender
-) => {
+export const createIpfsApi = (rune: RuneEngine, broadcastApi: BroadcastChannelSender) => {
   const ipfsInstance$ = new BehaviorSubject<CybIpfsNode | undefined>(undefined);
   const ipfsQueue = new QueueManager(ipfsInstance$, {
     rune,
@@ -76,18 +64,14 @@ export const createIpfsApi = (
       }
       return ipfsNode.fetchWithDetails(cid, parseAs, controller);
     },
-    enqueue: async (
-      cid: string,
-      callback: QueueItemCallback,
-      options: QueueItemOptions
-    ) => ipfsQueue.enqueue(cid, callback, options),
+    enqueue: async (cid: string, callback: QueueItemCallback, options: QueueItemOptions) =>
+      ipfsQueue.enqueue(cid, callback, options),
     enqueueAndWait: async (cid: string, options?: QueueItemOptions) =>
       ipfsQueue!.enqueueAndWait(cid, options),
     dequeue: async (cid: string) => ipfsQueue.cancel(cid),
     dequeueByParent: async (parent: string) => ipfsQueue.cancelByParent(parent),
     clearQueue: async () => ipfsQueue.clear(),
-    addContent: async (content: string | File) =>
-      ipfsInstance$.getValue()?.addContent(content),
+    addContent: async (content: string | File) => ipfsInstance$.getValue()?.addContent(content),
   };
 
   return { ipfsInstance$, ipfsQueue, api };

@@ -1,11 +1,10 @@
+import { Remote } from 'comlink';
 import Unixfs from 'ipfs-unixfs';
 import { DAGNode, util as DAGUtil } from 'ipld-dag-pb';
 import { isString } from 'lodash';
-import { RemoteIpfsApi } from 'src/services/backend/workers/background/worker';
-import { ParticleCid } from 'src/types/base';
 import { PATTERN_IPFS_HASH } from 'src/constants/patterns';
-import { Remote } from 'comlink';
 import { IpfsApi } from 'src/services/backend/workers/background/api/ipfsApi';
+import { ParticleCid } from 'src/types/base';
 
 export const isCID = (cid: string): boolean => {
   return cid.match(PATTERN_IPFS_HASH) !== null;
@@ -22,7 +21,7 @@ export const getIpfsHash = (string: string): Promise<ParticleCid> =>
         reject(new Error('Cannot create ipfs DAGNode'));
       }
 
-      DAGUtil.cid(dagNode, (error, cid) => {
+      DAGUtil.cid(dagNode, (_error, cid) => {
         resolve(cid.toBaseEncodedString());
       });
     });

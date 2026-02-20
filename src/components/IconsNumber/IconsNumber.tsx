@@ -1,18 +1,18 @@
 import BigNumber from 'bignumber.js';
-import React from 'react';
-import { formatNumber } from 'src/utils/utils';
-import getPrefixNumber from 'src/utils/getPrefixNumber';
 import cx from 'classnames';
-import Tooltip from '../tooltip/tooltip';
+import React from 'react';
+import getPrefixNumber from 'src/utils/getPrefixNumber';
+import { formatNumber } from 'src/utils/utils';
 import hydrogen from '../../image/hydrogen.svg';
+import Tooltip from '../tooltip/tooltip';
 import styles from './IconsNumber.module.scss';
 
 enum TypesEnum {
-  'karma' = 'karma',
-  'hydrogen' = 'hydrogen',
-  'energy' = 'energy',
-  'boot' = 'boot',
-  'pussy' = 'pussy',
+  karma = 'karma',
+  hydrogen = 'hydrogen',
+  energy = 'energy',
+  boot = 'boot',
+  pussy = 'pussy',
 }
 
 // type Types = TypesEnum.karma | TypesEnum.hydrogen | TypesEnum.energy;
@@ -43,10 +43,7 @@ type Props = {
 };
 
 export default function IconsNumber({ value, type, isVertical }: Props) {
-  const prefix = getPrefixNumber(
-    POWER.toNumber(),
-    new BigNumber(value || 0).toNumber()
-  );
+  const prefix = getPrefixNumber(POWER.toNumber(), new BigNumber(value || 0).toNumber());
 
   const number = new BigNumber(value)
     .dividedBy(POWER.pow(prefix))
@@ -70,14 +67,11 @@ export default function IconsNumber({ value, type, isVertical }: Props) {
       <Tooltip
         tooltip={
           <span className={styles.tooltipWrapper}>
-            {formatNumber(value?.toLocaleString()?.replaceAll(',', ' ')) || 0}{' '}
-            {icons[type]} {type}
+            {formatNumber(value?.toLocaleString()?.replaceAll(',', ' ')) || 0} {icons[type]} {type}
           </span>
         }
       >
-        <div className={cx(styles.icon, { [styles.vertical]: isVertical })}>
-          {i}
-        </div>
+        <div className={cx(styles.icon, { [styles.vertical]: isVertical })}>{i}</div>
       </Tooltip>
     </span>
   );

@@ -1,6 +1,3 @@
-import { NeuronAddress } from 'src/types/base';
-import { numberToUtcDate } from 'src/utils/date';
-import { fetchIterableByOffset } from 'src/utils/async/iterable';
 import {
   MessagesByAddressCountDocument,
   MessagesByAddressCountQuery,
@@ -9,9 +6,11 @@ import {
   MessagesByAddressSenseQuery,
   MessagesByAddressSenseQueryVariables,
 } from 'src/generated/graphql';
-
-import { createIndexerClient } from './utils/graphqlClient';
+import { NeuronAddress } from 'src/types/base';
+import { fetchIterableByOffset } from 'src/utils/async/iterable';
+import { numberToUtcDate } from 'src/utils/date';
 import { Transaction } from './types';
+import { createIndexerClient } from './utils/graphqlClient';
 
 type OrderDirection = 'desc' | 'asc';
 type Abortable = { abortSignal: AbortSignal };

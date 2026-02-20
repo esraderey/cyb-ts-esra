@@ -1,11 +1,5 @@
 /* eslint-disable import/no-unused-modules */
 
-import { ParticleCid, NeuronAddress } from 'src/types/base';
-import { numberToUtcDate } from 'src/utils/date';
-
-import { CYBERLINKS_BATCH_LIMIT } from './consts';
-import { createIndexerClient } from './utils/graphqlClient';
-import { fetchIterableByOffset } from 'src/utils/async/iterable';
 import {
   CyberlinksByParticleDocument,
   CyberlinksByParticleQuery,
@@ -15,6 +9,11 @@ import {
   CyberlinksCountByNeuronQueryVariables,
   Order_By,
 } from 'src/generated/graphql';
+import { NeuronAddress, ParticleCid } from 'src/types/base';
+import { fetchIterableByOffset } from 'src/utils/async/iterable';
+import { numberToUtcDate } from 'src/utils/date';
+import { CYBERLINKS_BATCH_LIMIT } from './consts';
+import { createIndexerClient } from './utils/graphqlClient';
 
 const fetchCyberlinks = async ({
   particleCid,
@@ -36,10 +35,7 @@ const fetchCyberlinks = async ({
       offset,
       orderBy: [{ timestamp: Order_By.Asc }],
       where: {
-        _or: [
-          { particle_to: { _eq: particleCid } },
-          { particle_from: { _eq: particleCid } },
-        ],
+        _or: [{ particle_to: { _eq: particleCid } }, { particle_from: { _eq: particleCid } }],
         timestamp: { _gt: numberToUtcDate(timestampFrom) },
       },
     });

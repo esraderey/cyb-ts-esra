@@ -1,8 +1,8 @@
-import { PORTAL_ID } from 'src/containers/application/App';
 import { useState } from 'react';
-import useEventListener from 'src/hooks/dom/useEventListener';
 import { Button } from 'src/components';
+import { PORTAL_ID } from 'src/containers/application/App';
 import AdviserHoverWrapper from 'src/features/adviser/AdviserHoverWrapper/AdviserHoverWrapper';
+import useEventListener from 'src/hooks/dom/useEventListener';
 import styles from './GraphFullscreenBtn.module.scss';
 import expandIcon from './images/expand.svg';
 import minimizeIcon from './images/minimize.svg';

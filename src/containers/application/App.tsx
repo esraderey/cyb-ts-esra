@@ -1,32 +1,27 @@
 import { useEffect, useMemo } from 'react';
-import { Link, Outlet, matchPath, useLocation } from 'react-router-dom';
-
-import { initPocket } from 'src/redux/features/pocket';
-import MainLayout from 'src/layouts/Main';
-
-import { getPassport } from 'src/features/passport/passports.redux';
-import { useAdviser } from 'src/features/adviser/context';
-import { routes } from 'src/routes';
-import { AdviserColors } from 'src/features/adviser/Adviser/Adviser';
-import { useBackend } from 'src/contexts/backend/backend';
-
-import { useAppDispatch } from 'src/redux/hooks';
-import useSenseManager from 'src/features/sense/ui/useSenseManager';
-
-import { initCyblog } from 'src/utils/logging/bootstrap';
-
-import { setTimeHistoryRoute } from 'src/features/TimeHistory/redux/TimeHistory.redux';
-import { PreviousPageProvider } from 'src/contexts/previousPage';
-import { cybernetRoutes } from 'src/features/cybernet/ui/routes';
-import useCurrentAddress from 'src/hooks/useCurrentAddress';
-import NewVersionChecker from 'src/components/NewVersionChecker/NewVersionChecker';
-import useAdviserTexts from 'src/features/adviser/useAdviserTexts';
+import { Link, matchPath, Outlet, useLocation } from 'react-router-dom';
 import { MainContainer } from 'src/components';
+import NewVersionChecker from 'src/components/NewVersionChecker/NewVersionChecker';
+import { useBackend } from 'src/contexts/backend/backend';
 import { useDevice } from 'src/contexts/device';
+import { PreviousPageProvider } from 'src/contexts/previousPage';
+import { AdviserColors } from 'src/features/adviser/Adviser/Adviser';
+import { useAdviser } from 'src/features/adviser/context';
+import useAdviserTexts from 'src/features/adviser/useAdviserTexts';
+import { cybernetRoutes } from 'src/features/cybernet/ui/routes';
+import { getPassport } from 'src/features/passport/passports.redux';
+import useSenseManager from 'src/features/sense/ui/useSenseManager';
+import { setTimeHistoryRoute } from 'src/features/TimeHistory/redux/TimeHistory.redux';
+import useCurrentAddress from 'src/hooks/useCurrentAddress';
+import MainLayout from 'src/layouts/Main';
+import { initPocket } from 'src/redux/features/pocket';
+import { useAppDispatch } from 'src/redux/hooks';
+import { routes } from 'src/routes';
+import { initCyblog } from 'src/utils/logging/bootstrap';
 import AdviserContainer from '../../features/adviser/AdviserContainer';
-import styles from './styles.scss';
 import { setFocus } from './Header/Commander/commander.redux';
 import { mobileAllowedRoutes } from './mobileAllowedRoutes';
+import styles from './styles.scss';
 import UseDesktopVersionBlock from './UseDesktopVersionBlock/UseDesktopVersionBlock';
 
 export const PORTAL_ID = 'portal';
@@ -49,7 +44,7 @@ function App() {
 
   useEffect(() => {
     dispatch(initPocket());
-  }, []);
+  }, [dispatch]);
 
   useEffect(() => {
     if (!address) {
@@ -74,8 +69,7 @@ function App() {
     defaultText: useMemo(() => {
       return (
         <div>
-          There are network issues 😔, part of functionality is currently
-          disabled
+          There are network issues 😔, part of functionality is currently disabled
           <br />
           <Link to={routes.social.path}>check socials</Link> for more info
         </div>
@@ -87,11 +81,9 @@ function App() {
   useEffect(() => {
     // tabs
     if (
-      [cybernetRoutes.verse.path, routes.senate.routes.proposal.path].some(
-        (path) => {
-          return matchPath(path, location.pathname);
-        }
-      )
+      [cybernetRoutes.verse.path, routes.senate.routes.proposal.path].some((path) => {
+        return matchPath(path, location.pathname);
+      })
     ) {
       return;
     }
@@ -115,7 +107,7 @@ function App() {
 
       adviserContext.setIsOpen(true);
     }
-  }, [ipfsError, location.pathname]);
+  }, [ipfsError, location.pathname, adviserContext.setAdviser, adviserContext.setIsOpen]);
 
   // chekEvangelism = () => {
   //   const { location } = this.props;
@@ -149,24 +141,20 @@ function App() {
     <PreviousPageProvider>
       <NewVersionChecker />
       <MainLayout>
-        <>
-          {/* not move portal order */}
-          {(location.pathname.includes('/brain') ||
-            location.pathname.includes('/oracle2') ||
-            location.pathname.includes('/graph')) && (
-            <div id={PORTAL_ID} className={styles.portal} />
-          )}
+        {/* not move portal order */}
+        {(location.pathname.includes('/brain') ||
+          location.pathname.includes('/oracle2') ||
+          location.pathname.includes('/graph')) && <div id={PORTAL_ID} className={styles.portal} />}
 
-          <AdviserContainer />
+        <AdviserContainer />
 
-          {isMobile && !mobileAllowed ? (
-            <MainContainer>
-              <UseDesktopVersionBlock />
-            </MainContainer>
-          ) : (
-            <Outlet />
-          )}
-        </>
+        {isMobile && !mobileAllowed ? (
+          <MainContainer>
+            <UseDesktopVersionBlock />
+          </MainContainer>
+        ) : (
+          <Outlet />
+        )}
       </MainLayout>
     </PreviousPageProvider>
   );

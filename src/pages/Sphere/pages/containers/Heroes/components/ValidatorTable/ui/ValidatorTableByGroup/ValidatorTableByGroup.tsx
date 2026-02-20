@@ -1,7 +1,7 @@
 import BigNumber from 'bignumber.js';
-import { ValidatorTableData } from 'src/pages/Sphere/types/tableData';
 import IconsNumber from 'src/components/IconsNumber/IconsNumber';
 import Table from 'src/components/Table/Table';
+import { ValidatorTableData } from 'src/pages/Sphere/types/tableData';
 import TransitionContainer from '../TransitionContainer/TransitionContainer';
 
 function ValidatorTableByGroup({
@@ -19,9 +19,7 @@ function ValidatorTableByGroup({
         const itemData = data[key];
         const bondAmount = itemData.reduce(
           (acc, item) => {
-            const amount = new BigNumber(acc.amount)
-              .plus(item.delegation?.amount || 0)
-              .toNumber();
+            const amount = new BigNumber(acc.amount).plus(item.delegation?.amount || 0).toNumber();
 
             acc.amount = amount;
             if (item.delegation) {
@@ -39,10 +37,7 @@ function ValidatorTableByGroup({
             isOpenState={!(key === 'inactive' || key === 'relax')}
             titleOptions={
               bondAmount.denom.length ? (
-                <IconsNumber
-                  value={bondAmount.amount}
-                  type={bondAmount.denom}
-                />
+                <IconsNumber value={bondAmount.amount} type={bondAmount.denom} />
               ) : undefined
             }
           >

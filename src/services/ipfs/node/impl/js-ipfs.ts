@@ -1,17 +1,9 @@
-import {
-  AbortOptions,
-  CatOptions,
-  IpfsNodeType,
-  IpfsFileStats,
-  IpfsNode,
-  IpfsNodePrperties,
-} from '../../types';
-import { create as createJsIpfsClient, IPFS } from 'ipfs-core';
-import { stringToCid, stringToIpfsPath } from '../../utils/cid';
 import { multiaddr } from '@multiformats/multiaddr';
-
-import configIpfs from './configs/jsIpfsConfig';
+import { create as createJsIpfsClient, IPFS } from 'ipfs-core';
 import { CYBER_GATEWAY_URL } from '../../config';
+import { AbortOptions, CatOptions, IpfsFileStats, IpfsNode, IpfsNodeType } from '../../types';
+import { stringToCid, stringToIpfsPath } from '../../utils/cid';
+import configIpfs from './configs/jsIpfsConfig';
 
 class JsIpfsNode implements IpfsNode {
   readonly nodeType: IpfsNodeType = 'embedded';

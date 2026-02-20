@@ -1,20 +1,21 @@
 /* eslint-disable */
-import React, { useContext, useState, useEffect, useCallback } from 'react';
+
+import { Coin } from '@cosmjs/launchpad';
+import { SigningStargateClient } from '@cosmjs/stargate';
+import { parseRawLog } from '@cosmjs/stargate/build/logs';
+import { SigningCyberClient } from '@cybercongress/cyber-js';
+import { PromiseExtended } from 'dexie';
+import React, { useCallback, useContext, useEffect, useState } from 'react';
+import { useAppSelector } from 'src/redux/hooks';
+import { RootState } from 'src/redux/store';
+import { Option } from 'src/types';
+import { AccountValue } from 'src/types/defaultAccount';
+import networkList from 'src/utils/networkListIbc';
 import { db as dbIbcHistory } from './db';
 import { HistoriesItem, StatusTx } from './HistoriesItem';
-import { RootState } from 'src/redux/store';
-import { AccountValue } from 'src/types/defaultAccount';
-import { Coin } from '@cosmjs/launchpad';
-import { parseRawLog } from '@cosmjs/stargate/build/logs';
-import parseEvents from './utils';
-import { SigningStargateClient } from '@cosmjs/stargate';
-import { SigningCyberClient } from '@cybercongress/cyber-js';
-import { Option } from 'src/types';
-import { PromiseExtended } from 'dexie';
-import TracerTx from './tx/TracerTx';
-import networkList from 'src/utils/networkListIbc';
 import PollingStatusSubscription from './polling-status-subscription';
-import { useAppSelector } from 'src/redux/hooks';
+import TracerTx from './tx/TracerTx';
+import parseEvents from './utils';
 
 const findRpc = (chainId: string): Option<string> => {
   if (networkList[chainId]) {
@@ -55,11 +56,9 @@ export const useIbcHistory = () => {
   return context;
 };
 
-const historiesItemsByAddress = (addressActive: AccountValue | null) => {
+const _historiesItemsByAddress = (addressActive: AccountValue | null) => {
   if (addressActive) {
-    return dbIbcHistory.historiesItems
-      .where({ address: addressActive.bech32 })
-      .toArray();
+    return dbIbcHistory.historiesItems.where({ address: addressActive.bech32 }).toArray();
   }
   return [];
 };
@@ -78,20 +77,16 @@ type UncommitedTx = {
 const blockSubscriberMap: Map<string, PollingStatusSubscription> = new Map();
 
 function HistoryContextProvider({ children }: { children: React.ReactNode }) {
-  const [ibcHistory, setIbcHistory] =
-    useState<Option<HistoriesItem[]>>(undefined);
+  const [ibcHistory, setIbcHistory] = useState<Option<HistoriesItem[]>>(undefined);
   const { defaultAccount } = useAppSelector((state: RootState) => state.pocket);
-  const [update, setUpdate] = useState(0);
-   const addressActive = defaultAccount.account?.cyber || undefined; 
+  const [_update, setUpdate] = useState(0);
+  const addressActive = defaultAccount.account?.cyber || undefined;
 
   function getBlockSubscriber(chainId: string): PollingStatusSubscription {
     if (!blockSubscriberMap.has(chainId)) {
       const chainInfo = findRpc(chainId);
       if (chainInfo) {
-        blockSubscriberMap.set(
-          chainId,
-          new PollingStatusSubscription(chainInfo)
-        );
+        blockSubscriberMap.set(chainId, new PollingStatusSubscription(chainInfo));
       }
     }
 
@@ -114,8 +109,7 @@ function HistoryContextProvider({ children }: { children: React.ReactNode }) {
       const blockTime = data?.result?.sync_info?.latest_block_time;
       if (
         blockTime &&
-        new Date(blockTime).getTime() >
-          Math.floor(parseInt(timeoutTimestamp) / 1000000)
+        new Date(blockTime).getTime() > Math.floor(parseInt(timeoutTimestamp, 10) / 1000000)
       ) {
         resolver();
         return;
@@ -129,10 +123,7 @@ function HistoryContextProvider({ children }: { children: React.ReactNode }) {
   }
 
   const traceHistoryStatus = async (item: HistoriesItem): Promise<StatusTx> => {
-    if (
-      item.status === StatusTx.COMPLETE ||
-      item.status === StatusTx.REFUNDED
-    ) {
+    if (item.status === StatusTx.COMPLETE || item.status === StatusTx.REFUNDED) {
       return item.status;
     }
 
@@ -263,7 +254,7 @@ function HistoryContextProvider({ children }: { children: React.ReactNode }) {
       }
     };
     getItem();
-  }, [addressActive, update]);
+  }, [addressActive]);
 
   // Trace pending/timeout items on initial load (only when address changes)
   useEffect(() => {
@@ -276,10 +267,7 @@ function HistoryContextProvider({ children }: { children: React.ReactNode }) {
           .toArray();
 
         items.forEach((item) => {
-          if (
-            item.status === StatusTx.PENDING ||
-            item.status === StatusTx.TIMEOUT
-          ) {
+          if (item.status === StatusTx.PENDING || item.status === StatusTx.TIMEOUT) {
             traceHistoryStatus(item).then((newStatus) => {
               if (newStatus !== item.status) {
                 updateStatusByTxHash(item.txHash, newStatus);
@@ -292,7 +280,7 @@ function HistoryContextProvider({ children }: { children: React.ReactNode }) {
     };
     tracePendingItems();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [addressActive]);
+  }, [addressActive, traceHistoryStatus, updateStatusByTxHash]);
 
   const pingTxsIbc = async (
     cliet: SigningStargateClient | SigningCyberClient,
@@ -317,9 +305,7 @@ function HistoryContextProvider({ children }: { children: React.ReactNode }) {
       }
       retryCount += 1;
       if (retryCount >= MAX_RETRIES) {
-        console.warn(
-          `pingTxsIbc: max retries reached for tx ${uncommitedTx.txHash}`
-        );
+        console.warn(`pingTxsIbc: max retries reached for tx ${uncommitedTx.txHash}`);
         return;
       }
       setTimeout(ping, 1500);

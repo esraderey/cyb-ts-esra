@@ -1,21 +1,16 @@
 /* eslint-disable */
-import { useEffect, useState } from 'react';
+
 import { Pane } from '@cybercongress/gravity';
-import {
-  Dots,
-  ConnectAddress,
-  TransactionError,
-  Input,
-  ActionBar,
-} from 'src/components';
-import { LEDGER } from 'src/utils/config';
+import { useEffect, useState } from 'react';
+import { useDispatch } from 'react-redux';
+import { ActionBar, ConnectAddress, Dots, Input, TransactionError } from 'src/components';
+import { CHAIN_ID } from 'src/constants/config';
 import { PATTERN_CYBER } from 'src/constants/patterns';
 import { useSigningClient } from 'src/contexts/signerClient';
-import { useDispatch } from 'react-redux';
 import { addAddressPocket } from 'src/redux/features/pocket';
-import { toHex } from 'src/utils/encoding';
 import { AccountValue } from 'src/types/defaultAccount';
-import { CHAIN_ID } from 'src/constants/config';
+import { LEDGER } from 'src/utils/config';
+import { toHex } from 'src/utils/encoding';
 import { KEY_TYPE } from '../types';
 import ActionBarSecrets from './actionBarSecrets';
 
@@ -25,25 +20,20 @@ const STAGE_ADD_ADDRESS_USER = 2.1;
 const STAGE_ADD_ADDRESS_OK = 2.2;
 const STAGE_ADD_SECRETS = 100;
 
-const checkAddress = (obj, network, address) =>
+const _checkAddress = (obj, network, address) =>
   Object.keys(obj).some((k) => {
     if (obj[k][network]) {
       return obj[k][network].bech32 === address;
     }
   });
 
-function ActionBarConnect({
-  addAddress,
-  updateAddress,
-  updateFuncActionBar,
-  onClickBack,
-}) {
+function ActionBarConnect({ addAddress, updateAddress, updateFuncActionBar, onClickBack }) {
   const { signer } = useSigningClient();
   const [stage, setStage] = useState(STAGE_INIT);
   const [valueInputAddres, setValueInputAddres] = useState('');
   const [selectMethod, setSelectMethod] = useState('');
   const selectNetwork = 'cyber';
-  const [addCyberAddress, setAddCyberAddress] = useState(false);
+  const [_addCyberAddress, setAddCyberAddress] = useState(false);
   const [validAddressAddedUser, setValidAddressAddedUser] = useState(true);
 
   const dispatch = useDispatch();
@@ -52,7 +42,7 @@ function ActionBarConnect({
     if (addAddress === false && stage === STAGE_ADD_ADDRESS_OK) {
       clearState();
     }
-  }, [stage, addAddress]);
+  }, [stage, addAddress, clearState]);
 
   useEffect(() => {
     if (valueInputAddres.match(PATTERN_CYBER)) {
@@ -92,7 +82,7 @@ function ActionBarConnect({
     setStage(STAGE_ADD_SECRETS);
   };
 
-  const onClickAddSecrets = () => {
+  const _onClickAddSecrets = () => {
     console.log('onClickAddSecrets');
   };
 
@@ -116,9 +106,7 @@ function ActionBarConnect({
 
   const connectKeplr = async () => {
     if (signer) {
-      const { bech32Address, pubKey, name } = await signer.keplr.getKey(
-        CHAIN_ID
-      );
+      const { bech32Address, pubKey, name } = await signer.keplr.getKey(CHAIN_ID);
       const pk = toHex(new Uint8Array(pubKey));
 
       const accounts: AccountValue = {
@@ -175,13 +163,7 @@ function ActionBarConnect({
         }}
         onClickBack={() => setStage(STAGE_INIT)}
       >
-        <Pane
-          flex={1}
-          justifyContent="center"
-          alignItems="center"
-          fontSize="18px"
-          display="flex"
-        >
+        <Pane flex={1} justifyContent="center" alignItems="center" fontSize="18px" display="flex">
           put {selectNetwork} address:
           <Input
             width="250px"

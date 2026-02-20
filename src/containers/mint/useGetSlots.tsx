@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useQueryClient } from 'src/contexts/queryClient';
+import { useCallback, useEffect, useState } from 'react';
 import { DENOM_LIQUID } from 'src/constants/config';
+import { useQueryClient } from 'src/contexts/queryClient';
 import { authAccounts } from '../../utils/search/utils';
 import { convertResources } from '../../utils/utils';
 import { Slot } from './types';
@@ -110,7 +110,7 @@ function useGetSlots(addressActive) {
         milliampere: 0,
       };
 
-      if (dataAuthAccounts && dataAuthAccounts.account.vesting_periods) {
+      if (dataAuthAccounts?.account.vesting_periods) {
         const { vesting_periods: vestingPeriods } = dataAuthAccounts.account;
         const { original_vesting: originalVestingAmount } =
           dataAuthAccounts.account.base_vesting_account;
@@ -128,10 +128,7 @@ function useGetSlots(addressActive) {
         }
         setOriginalVesting(originalVestingInitAmount);
 
-        const { tempData, vestedAmount } = getVestingPeriodsData(
-          vestingPeriods,
-          startTime
-        );
+        const { tempData, vestedAmount } = getVestingPeriodsData(vestingPeriods, startTime);
 
         setVested(vestedAmount);
         setSlotsData(tempData);
@@ -144,7 +141,7 @@ function useGetSlots(addressActive) {
       }
     };
     getAuth();
-  }, [dataAuthAccounts]);
+  }, [dataAuthAccounts, getCalculationBalance, getVestingPeriodsData]);
 
   const getBalacesResource = useCallback(() => {
     setBalacesResource(initBalacesResource);
@@ -165,11 +162,11 @@ function useGetSlots(addressActive) {
     } else {
       setBalacesResource(initBalacesResource);
     }
-  }, [dataGetAllBalances]);
+  }, [dataGetAllBalances, getCalculationBalance]);
 
   useEffect(() => {
     getBalacesResource();
-  }, [addressActive, getBalacesResource]);
+  }, [getBalacesResource]);
 
   const getCalculationBalance = (data) => {
     const balances = {};
@@ -208,10 +205,7 @@ function useGetSlots(addressActive) {
         // obj.status = 'empty';
         item.amount.forEach((itemAmount) => {
           const amount = {};
-          if (
-            itemAmount.denom === 'millivolt' ||
-            itemAmount.denom === 'milliampere'
-          ) {
+          if (itemAmount.denom === 'millivolt' || itemAmount.denom === 'milliampere') {
             amount[itemAmount.denom] = parseFloat(itemAmount.amount);
           } else {
             amount[itemAmount.denom] = parseFloat(itemAmount.amount);

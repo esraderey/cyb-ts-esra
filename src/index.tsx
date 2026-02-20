@@ -2,17 +2,15 @@
 import 'core-js/stable';
 import 'regenerator-runtime/runtime';
 
-import { createRoot } from 'react-dom/client';
-
 import { ApolloProvider } from '@apollo/client';
-
-import { QueryClientProvider, QueryClient } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
-import { Provider } from 'react-redux';
+import { createRoot } from 'react-dom/client';
 import { Helmet } from 'react-helmet';
-import AppRouter from './router';
-import store from './redux/store';
+import { Provider } from 'react-redux';
 import ErrorBoundary from './components/ErrorBoundary/ErrorBoundary';
+import store from './redux/store';
+import AppRouter from './router';
 
 import './style/main.css';
 import './style/index.scss';
@@ -21,23 +19,20 @@ import './image/favicon.ico';
 // for boot loading
 import './image/robot.svg';
 
-import SdkQueryClientProvider from './contexts/queryClient';
-import SigningClientProvider from './contexts/signerClient';
+import { localStorageKeys } from './constants/localStorageKeys';
 import DataProvider from './contexts/appData';
-import WebsocketsProvider from './websockets/context';
+import BackendProvider from './contexts/backend/backend';
 import DeviceProvider from './contexts/device';
+import HubProvider from './contexts/hub';
 import IbcDenomProvider from './contexts/ibcDenom';
 import NetworksProvider from './contexts/networks';
-import BackendProvider from './contexts/backend/backend';
-
-import AdviserProvider from './features/adviser/context';
-import HubProvider from './contexts/hub';
-
-import ScriptingProvider from './contexts/scripting/scripting';
-import { localStorageKeys } from './constants/localStorageKeys';
+import SdkQueryClientProvider from './contexts/queryClient';
 import CyberClientProvider from './contexts/queryCyberClient';
+import ScriptingProvider from './contexts/scripting/scripting';
+import SigningClientProvider from './contexts/signerClient';
+import AdviserProvider from './features/adviser/context';
 import apolloClient from './services/graphql';
-
+import WebsocketsProvider from './websockets/context';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -77,7 +72,7 @@ function Providers({ children }: { children: React.ReactNode }) {
                             <ScriptingProvider>
                               <DeviceProvider>
                                 <AdviserProvider>
-                                    <ErrorBoundary>{children}</ErrorBoundary>
+                                  <ErrorBoundary>{children}</ErrorBoundary>
                                 </AdviserProvider>
                               </DeviceProvider>
                             </ScriptingProvider>
@@ -98,12 +93,10 @@ function Providers({ children }: { children: React.ReactNode }) {
 
 root.render(
   <Providers>
-    <>
-      <Helmet>
-        <title>cyb: your immortal robot for the great web</title>
-      </Helmet>
-      <AppRouter />
-      <ReactQueryDevtools position="bottom-right" />
-    </>
+    <Helmet>
+      <title>cyb: your immortal robot for the great web</title>
+    </Helmet>
+    <AppRouter />
+    <ReactQueryDevtools position="bottom-right" />
   </Providers>
 );

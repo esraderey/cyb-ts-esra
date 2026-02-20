@@ -1,13 +1,14 @@
 /* eslint-disable no-restricted-syntax */
-import { useState, useEffect } from 'react';
+
+import { Decimal } from '@cosmjs/math';
 import { GasPrice, SigningStargateClient } from '@cosmjs/stargate';
+import { useEffect, useState } from 'react';
+import { CHAIN_ID } from 'src/constants/config';
 import { useSigningClient } from 'src/contexts/signerClient';
 import { getKeplr } from 'src/utils/keplrUtils';
-import { Decimal } from '@cosmjs/math';
-import useGetBalancesIbc from './useGetBalancesIbc';
 
 import networks from '../../../utils/networkListIbc';
-import { CHAIN_ID } from 'src/constants/config';
+import useGetBalancesIbc from './useGetBalancesIbc';
 
 function useSetupIbcClient(denom, network) {
   const { signingClient } = useSigningClient();
@@ -30,19 +31,12 @@ function useSetupIbcClient(denom, network) {
         const feeCurrenciesA = chainInfoA.feeCurrencies[0];
 
         const GasPriceA = new GasPrice(
-          Decimal.fromUserInput(
-            feeCurrenciesA.gasPriceStep?.average.toString() || '0',
-            3
-          ),
+          Decimal.fromUserInput(feeCurrenciesA.gasPriceStep?.average.toString() || '0', 3),
           feeCurrenciesA?.coinMinimalDenom
         );
 
         const options = { prefix, gasPrice: GasPriceA };
-        client = await SigningStargateClient.connectWithSigner(
-          rpc,
-          offlineSigner,
-          options
-        );
+        client = await SigningStargateClient.connectWithSigner(rpc, offlineSigner, options);
       } else {
         client = signingClient;
       }

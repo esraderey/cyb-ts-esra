@@ -26,8 +26,7 @@ const valueContext = {
 export const FILTERING_CONTRACT =
   'bostrom1p8drdvmwygrreesp4e425q6xs77zkcsj7z7h9as7sketuv5w334slsxv7l';
 
-const DataProviderContext =
-  React.createContext<DataProviderContextType>(valueContext);
+const DataProviderContext = React.createContext<DataProviderContextType>(valueContext);
 
 export function useAppData() {
   return useContext(DataProviderContext);
@@ -45,9 +44,7 @@ function DataProvider({ children }: { children: React.ReactNode }) {
 
   const filterParticles = filterContractQuery?.data?.map((item) => item[1]);
 
-  const resultMarketData = Object.keys(convertMarketData).length
-    ? convertMarketData
-    : marketData;
+  const resultMarketData = Object.keys(convertMarketData).length ? convertMarketData : marketData;
 
   useEffect(() => {
     if (!cyber?.connected) {
@@ -94,11 +91,7 @@ function DataProvider({ children }: { children: React.ReactNode }) {
     [resultMarketData, dataTotal, blockHeight, filterParticles]
   );
 
-  return (
-    <DataProviderContext.Provider value={valueMemo}>
-      {children}
-    </DataProviderContext.Provider>
-  );
+  return <DataProviderContext.Provider value={valueMemo}>{children}</DataProviderContext.Provider>;
 }
 
 export default DataProvider;

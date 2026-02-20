@@ -1,7 +1,6 @@
+import axios from 'axios';
 import { LCD_URL } from 'src/constants/config';
 import { dataOrNull } from 'src/utils/axios';
-
-import axios from 'axios';
 
 export const getTxs = async (txHash: string) => {
   const response = await axios({

@@ -39,21 +39,18 @@ export async function getTransactions({
 }: PropsTx) {
   try {
     const { offset, limit } = pagination;
-    const response = await axios.get<GetTxsEventResponseAmino>(
-      `${LCD_URL}/cosmos/tx/v1beta1/txs`,
-      {
-        params: {
-          'pagination.offset': offset,
-          'pagination.limit': limit,
-          orderBy,
-          events: events.map((evn) => `${evn.key}='${evn.value}'`),
-        },
-        paramsSerializer: {
-          indexes: null,
-        },
-        signal: config?.signal,
-      }
-    );
+    const response = await axios.get<GetTxsEventResponseAmino>(`${LCD_URL}/cosmos/tx/v1beta1/txs`, {
+      params: {
+        'pagination.offset': offset,
+        'pagination.limit': limit,
+        orderBy,
+        events: events.map((evn) => `${evn.key}='${evn.value}'`),
+      },
+      paramsSerializer: {
+        indexes: null,
+      },
+      signal: config?.signal,
+    });
 
     const { txs } = response.data;
 
@@ -88,9 +85,7 @@ const getLink = async (
     const response = await getTransactions({
       events: [
         {
-          key: `cyberlink.particle${
-            type === LinksTypeFilter.to ? 'To' : 'From'
-          }`,
+          key: `cyberlink.particle${type === LinksTypeFilter.to ? 'To' : 'From'}`,
           value: cid,
         },
       ],

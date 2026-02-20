@@ -1,19 +1,15 @@
 /* eslint-disable no-nested-ternary */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import useMediaQuery from 'src/hooks/useMediaQuery';
-import {
-  formatCurrency,
-  formatNumber,
-  timeSince,
-} from '../../../../utils/utils';
+import { formatCurrency, formatNumber, timeSince } from '../../../../utils/utils';
 import {
   useAccountCount,
-  useGetPortalStats,
-  useGetNegentropy,
-  useGetValidatorsBonded,
-  useGetGraphStats,
   useContractsCount,
+  useGetGraphStats,
+  useGetNegentropy,
+  useGetPortalStats,
   useGetTotalCap,
+  useGetValidatorsBonded,
 } from '../../hooks';
 import slideData from './slideData';
 import styles from './styles.scss';
@@ -49,7 +45,7 @@ export function TypingText({ content, delay = 30 }) {
       updateDisplay('');
       clearInterval(animID);
     };
-  }, [content]);
+  }, [content, animID, delay, typeLetter]);
 
   const typeLetter = () => {
     updateDisplay((prevText) => {
@@ -71,16 +67,10 @@ function DeltaValue({ change }) {
           color: parseFloat(change.amount) >= 0 ? '#76FF03' : '#FF0000',
           fontSize: 20,
           textShadow:
-            parseFloat(change.amount) >= 0
-              ? '0px 4px 10px #76FF03'
-              : '0px 4px 10px #FF0000',
+            parseFloat(change.amount) >= 0 ? '0px 4px 10px #76FF03' : '0px 4px 10px #FF0000',
         }}
       >
-        {parseFloat(change.amount) !== 0
-          ? parseFloat(change.amount) > 0
-            ? '+'
-            : ''
-          : ''}
+        {parseFloat(change.amount) !== 0 ? (parseFloat(change.amount) > 0 ? '+' : '') : ''}
         {change.amount} in {timeSince(change.time)}
       </div>
     );
@@ -184,9 +174,7 @@ function PlayBanerContent() {
           amount: formatNumber(dataGetPortalStats.data.citizens),
           change: {
             time: dataGetPortalStats.changeTimeAmount.time,
-            amount: formatNumber(
-              dataGetPortalStats.changeTimeAmount.citizensAmount
-            ),
+            amount: formatNumber(dataGetPortalStats.changeTimeAmount.citizensAmount),
           },
         },
         provable: {
@@ -194,9 +182,7 @@ function PlayBanerContent() {
           amount: `${formatNumber(dataGetPortalStats.data.procentClaim)} %`,
           change: {
             time: dataGetPortalStats.changeTimeAmount.time,
-            amount: `${formatNumber(
-              dataGetPortalStats.changeTimeAmount.procentClaimAmount
-            )} %`,
+            amount: `${formatNumber(dataGetPortalStats.changeTimeAmount.procentClaimAmount)} %`,
           },
         },
       };
@@ -204,10 +190,7 @@ function PlayBanerContent() {
   }, [dataGetPortalStats]);
 
   useEffect(() => {
-    if (
-      dataGetValidatorsBonded.status === 'success' &&
-      dataGetValidatorsBonded.data
-    ) {
+    if (dataGetValidatorsBonded.status === 'success' && dataGetValidatorsBonded.data) {
       slideDataRef.current = {
         ...slideDataRef.current,
         biggestUseful: {
@@ -215,9 +198,7 @@ function PlayBanerContent() {
           amount: formatNumber(dataGetValidatorsBonded.data.validators),
           change: {
             time: dataGetValidatorsBonded.changeTimeAmount.time,
-            amount: formatNumber(
-              dataGetValidatorsBonded.changeTimeAmount.amount
-            ),
+            amount: formatNumber(dataGetValidatorsBonded.changeTimeAmount.amount),
           },
         },
       };
@@ -293,7 +274,7 @@ function PlayBanerContent() {
       resetTimeout();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [index, slideData]);
+  }, [index, resetTimeout]);
 
   const restartSlide = useCallback(() => {
     if (index === Object.values(slideData).length - 1) {
@@ -301,7 +282,7 @@ function PlayBanerContent() {
       setIndex(0);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [index, slideData]);
+  }, [index, resetTimeout]);
 
   const slideDataState = slideDataRef.current;
   return (
@@ -315,10 +296,7 @@ function PlayBanerContent() {
         }}
       >
         <div>
-          <TypingText
-            content={Object.values(slideDataState)[index].title}
-            delay={40}
-          />
+          <TypingText content={Object.values(slideDataState)[index].title} delay={40} />
         </div>
         <div
           style={{

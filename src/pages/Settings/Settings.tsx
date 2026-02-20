@@ -1,10 +1,10 @@
 import { Route, Routes } from 'react-router-dom';
 import IpfsSettings from 'src/features/ipfs/ipfsSettings';
-import Layout from './Layout/Layout';
-import Keys from '../Keys/Keys';
 import Hub from '../Hub/hub';
-import Audio from './Audio/Audio';
+import Keys from '../Keys/Keys';
 import Hotkeys from '../robot/Hotkeys/Hotkeys';
+import Audio from './Audio/Audio';
+import Layout from './Layout/Layout';
 import LLM from './LLM/LLM';
 
 function Settings() {

@@ -1,15 +1,9 @@
-import { toString as uint8ArrayToAsciiString } from 'uint8arrays/to-string';
 import isSvg from 'is-svg';
 import { PATTERN_HTTP, PATTERN_IPFS_HASH } from 'src/constants/patterns';
 import { Option } from 'src/types';
-
 import { shortenString } from 'src/utils/string';
-import {
-  IPFSContentDetails,
-  IPFSContent,
-  IpfsContentType,
-  IpfsGatewayContentType,
-} from '../types';
+import { toString as uint8ArrayToAsciiString } from 'uint8arrays/to-string';
+import { IPFSContent, IPFSContentDetails, IpfsContentType, IpfsGatewayContentType } from '../types';
 import { getResponseResult, onProgressCallback } from './stream';
 
 function createObjectURL(rawData: Uint8Array, type: string) {
@@ -51,15 +45,11 @@ function isHtml(string: string) {
 }
 
 // eslint-disable-next-line import/no-unused-modules
-export const chunksToBlob = (
-  chunks: Array<Uint8Array>,
-  mime: string | undefined
-) => new Blob(chunks, mime ? { type: mime } : {});
+export const chunksToBlob = (chunks: Array<Uint8Array>, mime: string | undefined) =>
+  new Blob(chunks, mime ? { type: mime } : {});
 
 // eslint-disable-next-line import/no-unused-modules
-export const mimeToBaseContentType = (
-  mime: string | undefined
-): IpfsContentType => {
+export const mimeToBaseContentType = (mime: string | undefined): IpfsContentType => {
   if (!mime) {
     return 'other';
   }
@@ -69,10 +59,7 @@ export const mimeToBaseContentType = (
     return initialType;
   }
 
-  if (
-    mime.indexOf('text/plain') !== -1 ||
-    mime.indexOf('application/xml') !== -1
-  ) {
+  if (mime.indexOf('text/plain') !== -1 || mime.indexOf('application/xml') !== -1) {
     return 'text';
   }
   if (mime.indexOf('image') !== -1) {
@@ -123,10 +110,7 @@ export const parseArrayLikeToDetails = async (
     return { ...response, gateway: true };
   }
 
-  const rawData =
-    typeof result !== 'string'
-      ? await getResponseResult(result, onProgress)
-      : result;
+  const rawData = typeof result !== 'string' ? await getResponseResult(result, onProgress) : result;
 
   const isStringData = typeof rawData === 'string';
 
@@ -206,9 +190,7 @@ export const parseArrayLikeToDetails = async (
   // }
 };
 
-export const contentToUint8Array = async (
-  content: File | string
-): Promise<Uint8Array> => {
+export const contentToUint8Array = async (content: File | string): Promise<Uint8Array> => {
   return new Uint8Array(
     typeof content === 'string'
       ? new TextEncoder().encode(content)

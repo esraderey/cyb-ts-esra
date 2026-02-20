@@ -1,19 +1,18 @@
 import React from 'react';
-import { $TsFixMeFunc } from 'src/types/tsfix';
-
-import { routes } from 'src/routes';
 import { useLocation } from 'react-router-dom';
-import { Networks } from 'src/types/networks';
+import { CHAIN_ID } from 'src/constants/config';
+import { useDevice } from 'src/contexts/device';
+import { useSigningClient } from 'src/contexts/signerClient';
 import usePassportByAddress from 'src/features/passport/hooks/usePassportByAddress';
 import { selectCurrentAddress } from 'src/redux/features/pocket';
 import { useAppSelector } from 'src/redux/hooks';
-import { useSigningClient } from 'src/contexts/signerClient';
+import { routes } from 'src/routes';
+import { Networks } from 'src/types/networks';
+import { $TsFixMeFunc } from 'src/types/tsfix';
 import { trimString } from 'src/utils/utils';
-import { CHAIN_ID } from 'src/constants/config';
-import { useDevice } from 'src/contexts/device';
+import Button from '../btnGrd';
 import ButtonIcon from '../buttons/ButtonIcon';
 import styles from './styles.module.scss';
-import Button from '../btnGrd';
 
 const back = require('../../image/arrow-left-img.svg');
 
@@ -76,10 +75,7 @@ function ActionBar({ children, text, onClickBack, button }: Props) {
   if (commander.isFocused) {
     return (
       <ActionBarContainer>
-        <Button
-          link={routes.search.getLink(commander.value)}
-          disabled={!commander.value.length}
-        >
+        <Button link={routes.search.getLink(commander.value)} disabled={!commander.value.length}>
           Ask
         </Button>
       </ActionBarContainer>
@@ -112,8 +108,7 @@ function ActionBar({ children, text, onClickBack, button }: Props) {
     !location.pathname.includes('/brain') // both full and robot
   ) {
     const activeAddress =
-      defaultAccount.account?.cyber.name ||
-      trimString(defaultAccount.account?.cyber.bech32, 10, 4);
+      defaultAccount.account?.cyber.name || trimString(defaultAccount.account?.cyber.bech32, 10, 4);
 
     return (
       <ActionBarContainer>

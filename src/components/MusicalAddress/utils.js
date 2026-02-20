@@ -1,15 +1,15 @@
 /* eslint-disable no-restricted-syntax */
-import * as Tone from 'tone';
 
 import {
-  PATTERN_CYBER,
-  PATTERN_ETH,
   PATTERN_COSMOS,
-  PATTERN_OSMOS,
-  PATTERN_TERRA,
+  PATTERN_CYBER,
   PATTERN_CYBER_VALOPER,
+  PATTERN_ETH,
+  PATTERN_OSMOS,
   PATTERN_SPACE_PUSSY,
+  PATTERN_TERRA,
 } from 'src/constants/patterns';
+import * as Tone from 'tone';
 
 const DICTIONARY_ABC = {
   a: { note: 'E3', height: 16, gain: 1, color: '#36D6AE' },

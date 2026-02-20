@@ -1,13 +1,7 @@
-import {
-  wrap,
-  Remote,
-  proxy,
-  releaseProxy,
-  expose,
-  transferHandlers,
-} from 'comlink';
-import { IPFSContentTransferHandler } from './serializers';
+import { expose, proxy, Remote, releaseProxy, transferHandlers, wrap } from 'comlink';
 import { Observable, Observer, Subscribable, Subscription } from 'rxjs'; // v7.8.0
+import { IPFSContentTransferHandler } from './serializers';
+
 type WorkerType = SharedWorker | Worker;
 
 const isSharedWorkersSupported = typeof SharedWorker !== 'undefined';
@@ -23,9 +17,9 @@ function installTransferHandlers() {
     },
     deserialize: (value: MessagePort) => {
       return new Observable<unknown>((observer) => {
-        const remote = transferHandlers
-          .get('proxy')!
-          .deserialize(value) as Remote<Subscribable<unknown>>;
+        const remote = transferHandlers.get('proxy')!.deserialize(value) as Remote<
+          Subscribable<unknown>
+        >;
 
         remote
           .subscribe(
@@ -61,9 +55,7 @@ function installTransferHandlers() {
     },
     deserialize: (value: MessagePort) => {
       return new Subscription(() => {
-        const remote = transferHandlers
-          .get('proxy')!
-          .deserialize(value) as Remote<Subscription>;
+        const remote = transferHandlers.get('proxy')!.deserialize(value) as Remote<Subscription>;
 
         remote.unsubscribe().then(() => {
           remote[releaseProxy]();
@@ -81,7 +73,7 @@ function installTransferHandlers() {
 function safeStringify(obj: any): string {
   try {
     return JSON.stringify(obj);
-  } catch (error) {
+  } catch (_error) {
     return String(obj);
   }
 }

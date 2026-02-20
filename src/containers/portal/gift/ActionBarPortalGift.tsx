@@ -2,55 +2,46 @@
 /* eslint-disable no-await-in-loop */
 /* eslint-disable no-restricted-syntax */
 /* eslint-disable jsx-a11y/control-has-associated-label */
-import { useEffect, useState, useCallback, useMemo } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { GasPrice } from '@cosmjs/launchpad';
-import { toAscii, toBase64 } from '@cosmjs/encoding';
-import { toHex } from 'src/utils/encoding';
-import { useSigningClient } from 'src/contexts/signerClient';
-import { getKeplr } from 'src/utils/keplrUtils';
-import useWaitForTransaction from 'src/hooks/useWaitForTransaction';
-import { useDispatch } from 'react-redux';
-import { Citizenship } from 'src/types/citizenship';
-import { useBackend } from 'src/contexts/backend/backend';
-import { PATTERN_CYBER } from 'src/constants/patterns';
-import Soft3MessageFactory from 'src/services/soft.js/api/msgs';
-import BigNumber from 'bignumber.js';
-import { Nullable } from 'src/types';
-import useCurrentAddress from 'src/hooks/useCurrentAddress';
-import { CHAIN_ID } from 'src/constants/config';
-import {
-  Dots,
-  ButtonIcon,
-  ActionBar as ActionBarSteps,
-  BtnGrd,
-} from '../../../components';
-import { trimString, groupMsg } from '../../../utils/utils';
-import {
-  CONSTITUTION_HASH,
-  CONTRACT_ADDRESS_PASSPORT,
-  BOOT_ICON,
-  CONTRACT_ADDRESS_GIFT,
-} from '../utils';
-import configTerraKeplr from './configTerraKeplr';
-import STEP_INFO from './utils';
 
+import { toAscii, toBase64 } from '@cosmjs/encoding';
+import { GasPrice } from '@cosmjs/launchpad';
+import BigNumber from 'bignumber.js';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useDispatch } from 'react-redux';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { CHAIN_ID } from 'src/constants/config';
+import { PATTERN_CYBER } from 'src/constants/patterns';
+import { useBackend } from 'src/contexts/backend/backend';
+import { useSigningClient } from 'src/contexts/signerClient';
+import useCurrentAddress from 'src/hooks/useCurrentAddress';
+import useWaitForTransaction from 'src/hooks/useWaitForTransaction';
+import Soft3MessageFactory from 'src/services/soft.js/api/msgs';
+import { Nullable } from 'src/types';
+import { Citizenship } from 'src/types/citizenship';
+import { toHex } from 'src/utils/encoding';
+import { getKeplr } from 'src/utils/keplrUtils';
+import { ActionBar as ActionBarSteps, BtnGrd, ButtonIcon, Dots } from '../../../components';
+import { addAddress, deleteAddress } from '../../../features/passport/passports.redux';
+import imgCosmos from '../../../image/cosmos-2.svg';
+import imgEth from '../../../image/Ethereum_logo_2014.svg';
 import imgKeplr from '../../../image/keplr-icon.svg';
 import imgMetaMask from '../../../image/mm-logo.svg';
-import imgEth from '../../../image/Ethereum_logo_2014.svg';
 import imgOsmosis from '../../../image/osmosis.svg';
-import imgTerra from '../../../image/terra.svg';
-import imgCosmos from '../../../image/cosmos-2.svg';
 import imgSpacePussy from '../../../image/space-pussy.svg';
-
-import {
-  addAddress,
-  deleteAddress,
-} from '../../../features/passport/passports.redux';
-import { ClaimMsg } from './type';
+import imgTerra from '../../../image/terra.svg';
+import { groupMsg, trimString } from '../../../utils/utils';
 import { TxHash } from '../hook/usePingTxs';
+import {
+  BOOT_ICON,
+  CONSTITUTION_HASH,
+  CONTRACT_ADDRESS_GIFT,
+  CONTRACT_ADDRESS_PASSPORT,
+} from '../utils';
+import configTerraKeplr from './configTerraKeplr';
+import { ClaimMsg } from './type';
+import STEP_INFO from './utils';
 
-const gasPrice = GasPrice.fromString('0.001boot');
+const _gasPrice = GasPrice.fromString('0.001boot');
 
 const proofAddressMsg = (address, nickname, signature) => {
   return {
@@ -163,7 +154,7 @@ function ActionBarPortalGift({
       }
     };
     checkAddress();
-  }, [signer, addressActive, selectMethod, activeStep]);
+  }, [signer, addressActive, activeStep, setStepApp]);
 
   const useAddressOwner = useMemo(() => {
     if (citizenship && addressActive !== null) {
@@ -180,9 +171,7 @@ function ActionBarPortalGift({
       return (
         <>
           address
-          <span style={{ color: '#36d6ae', padding: '0 5px' }}>
-            {trimString(owner, 10, 4)}
-          </span>
+          <span style={{ color: '#36d6ae', padding: '0 5px' }}>{trimString(owner, 10, 4)}</span>
         </>
       );
     }
@@ -206,9 +195,7 @@ function ActionBarPortalGift({
       const [{ address }] = await signer.getAccounts();
 
       if (addresses !== null && Object.keys(addresses).length > 0) {
-        const result = Object.keys(addresses).filter(
-          (key) => addresses[key].address === address
-        );
+        const result = Object.keys(addresses).filter((key) => addresses[key].address === address);
 
         if (result.length > 0) {
           setStepApp(STEP_INFO.STATE_PROVE_YOU_ADDED_ADDR);
@@ -229,7 +216,7 @@ function ActionBarPortalGift({
       setStepApp(STEP_INFO.STATE_PROVE_CHECK_ACCOUNT);
     }
     return null;
-  }, [citizenship, selectNetwork]);
+  }, [citizenship, selectNetwork, setStepApp]);
 
   const signMsgETH = useCallback(async () => {
     if (window.ethereum && citizenship) {
@@ -248,9 +235,7 @@ function ActionBarPortalGift({
       const from = address;
 
       if (addresses !== null && Object.keys(addresses).length > 0) {
-        const result = Object.keys(addresses).filter(
-          (key) => addresses[key].address === address
-        );
+        const result = Object.keys(addresses).filter((key) => addresses[key].address === address);
 
         if (result.length > 0) {
           setStepApp(STEP_INFO.STATE_PROVE_YOU_ADDED_ADDR);
@@ -267,7 +252,7 @@ function ActionBarPortalGift({
       setStepApp(STEP_INFO.STATE_PROVE_CHECK_ACCOUNT);
     }
     return null;
-  }, [citizenship]);
+  }, [citizenship, setStepApp]);
 
   const sendSignedMessage = useCallback(async () => {
     if (signer && signingClient && citizenship && signedMessageKeplr !== null) {
@@ -336,6 +321,11 @@ function ActionBarPortalGift({
     signedMessageKeplr,
     isIpfsInitialized,
     ipfsApi,
+    currentAddress,
+    dispatch,
+    setLoadingGift,
+    setStepApp,
+    updateTxHash,
   ]);
 
   const claim = useCallback(async () => {
@@ -361,9 +351,7 @@ function ActionBarPortalGift({
             const msgObject = claimMsg(nickname, address, amount, proof);
             msgs.push(msgObject);
           });
-          const { bech32Address, isNanoLedger } = await signer.keplr.getKey(
-            CHAIN_ID
-          );
+          const { bech32Address, isNanoLedger } = await signer.keplr.getKey(CHAIN_ID);
 
           if (!msgs.length) {
             return;
@@ -422,8 +410,9 @@ function ActionBarPortalGift({
     currentGift,
     citizenship,
     initSigner,
-    progressClaim,
-    currentBonus,
+    setLoadingGift, // setStep(STEP_INIT);
+    setStepApp,
+    updateTxHash,
   ]);
 
   const isProve = useMemo(() => {
@@ -501,7 +490,16 @@ function ActionBarPortalGift({
       console.log('error', error);
       setStepApp(STEP_INFO.STATE_INIT);
     }
-  }, [signer, signingClient, selectedAddress, citizenship]);
+  }, [
+    signer,
+    signingClient,
+    selectedAddress,
+    citizenship,
+    currentAddress,
+    dispatch,
+    setStepApp,
+    updateTxHash,
+  ]);
 
   const useGetSelectAddress = useMemo(() => {
     if (selectedAddress && selectedAddress !== null) {
@@ -522,18 +520,12 @@ function ActionBarPortalGift({
   if (activeStep === STEP_INFO.STATE_INIT_NULL) {
     return (
       <ActionBarSteps>
-        <BtnGrd
-          onClick={() => navigate('/citizenship')}
-          text="get citizenship"
-        />
+        <BtnGrd onClick={() => navigate('/citizenship')} text="get citizenship" />
       </ActionBarSteps>
     );
   }
 
-  if (
-    activeStep === STEP_INFO.STATE_INIT_PROVE ||
-    activeStep === STEP_INFO.STATE_PROVE
-  ) {
+  if (activeStep === STEP_INFO.STATE_INIT_PROVE || activeStep === STEP_INFO.STATE_PROVE) {
     return (
       <ActionBarSteps>
         <BtnGrd
@@ -548,10 +540,7 @@ function ActionBarPortalGift({
   if (activeStep === STEP_INFO.STATE_INIT_CLAIM) {
     return (
       <ActionBarSteps>
-        <BtnGrd
-          onClick={() => setStepApp(STEP_INFO.STATE_CLAIME)}
-          text="go to claim"
-        />
+        <BtnGrd onClick={() => setStepApp(STEP_INFO.STATE_CLAIME)} text="go to claim" />
       </ActionBarSteps>
     );
   }
@@ -567,10 +556,7 @@ function ActionBarPortalGift({
           onClick={() => setStepApp(STEP_INFO.STATE_PROVE_CONNECT)}
           text="prove one more address"
         />
-        <BtnGrd
-          onClick={() => navigate('/teleport')}
-          text={`buy ${BOOT_ICON}`}
-        />
+        <BtnGrd onClick={() => navigate('/teleport')} text={`buy ${BOOT_ICON}`} />
       </ActionBarSteps>
     );
   }
@@ -672,9 +658,7 @@ function ActionBarPortalGift({
 
   if (activeStep === STEP_INFO.STATE_PROVE_CHECK_ACCOUNT) {
     return (
-      <ActionBarSteps
-        onClickBack={() => setStepApp(STEP_INFO.STATE_PROVE_CONNECT)}
-      >
+      <ActionBarSteps onClickBack={() => setStepApp(STEP_INFO.STATE_PROVE_CONNECT)}>
         address comparison <Dots />
       </ActionBarSteps>
     );
@@ -682,9 +666,7 @@ function ActionBarPortalGift({
 
   if (activeStep === STEP_INFO.STATE_PROVE_CHANGE_ACCOUNT) {
     return (
-      <ActionBarSteps
-        onClickBack={() => setStepApp(STEP_INFO.STATE_PROVE_CONNECT)}
-      >
+      <ActionBarSteps onClickBack={() => setStepApp(STEP_INFO.STATE_PROVE_CONNECT)}>
         choose {useAddressOwner} in keplr
       </ActionBarSteps>
     );
@@ -692,13 +674,8 @@ function ActionBarPortalGift({
 
   if (activeStep === STEP_INFO.STATE_PROVE_SEND_SIGN) {
     return (
-      <ActionBarSteps
-        onClickBack={() => setStepApp(STEP_INFO.STATE_PROVE_CONNECT)}
-      >
-        <BtnGrd
-          onClick={() => sendSignedMessage()}
-          text="send signature of Moon Code"
-        />
+      <ActionBarSteps onClickBack={() => setStepApp(STEP_INFO.STATE_PROVE_CONNECT)}>
+        <BtnGrd onClick={() => sendSignedMessage()} text="send signature of Moon Code" />
       </ActionBarSteps>
     );
   }
@@ -712,16 +689,12 @@ function ActionBarPortalGift({
   }
 
   if (
-    (activeStep === STEP_INFO.STATE_INIT_RELEASE ||
-      activeStep === STEP_INFO.STATE_RELEASE) &&
+    (activeStep === STEP_INFO.STATE_INIT_RELEASE || activeStep === STEP_INFO.STATE_RELEASE) &&
     isClaimed
   ) {
     return (
       <ActionBarSteps>
-        <BtnGrd
-          onClick={() => setStepApp(STEP_INFO.STATE_RELEASE_INIT)}
-          text="go to release"
-        />
+        <BtnGrd onClick={() => setStepApp(STEP_INFO.STATE_RELEASE_INIT)} text="go to release" />
       </ActionBarSteps>
     );
   }

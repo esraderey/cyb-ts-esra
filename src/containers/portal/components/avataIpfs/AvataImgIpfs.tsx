@@ -1,10 +1,9 @@
-import useQueueIpfsContent from 'src/hooks/useQueueIpfsContent';
-import cx from 'classnames';
 import { useQuery } from '@tanstack/react-query';
+import cx from 'classnames';
+import useQueueIpfsContent from 'src/hooks/useQueueIpfsContent';
 import styles from './styles.module.scss';
 
-const getRoboHashImage = (addressCyber: string) =>
-  `https://robohash.org/${addressCyber}`;
+const getRoboHashImage = (addressCyber: string) => `https://robohash.org/${addressCyber}`;
 
 type Props = {
   cidAvatar?: string;
@@ -13,13 +12,7 @@ type Props = {
   className?: string;
 };
 
-function AvatarImgIpfs({
-  img = '',
-  cidAvatar,
-  addressCyber,
-  className,
-  ...props
-}: Props) {
+function AvatarImgIpfs({ img = '', cidAvatar, addressCyber, className, ...props }: Props) {
   const { fetchWithDetails } = useQueueIpfsContent();
 
   const { data: avatar } = useQuery(
@@ -34,10 +27,7 @@ function AvatarImgIpfs({
   );
 
   const avatarImage =
-    avatar ||
-    (addressCyber && getRoboHashImage(addressCyber)) ||
-    img ||
-    getRoboHashImage('null');
+    avatar || (addressCyber && getRoboHashImage(addressCyber)) || img || getRoboHashImage('null');
 
   return (
     <img
