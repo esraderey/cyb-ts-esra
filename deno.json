@@ -6,7 +6,7 @@
     "build-report": "DENO_NO_PACKAGE_JSON=1 ./node_modules/.bin/rspack build --config=rspack.config.prod.js --profile --json > stats.json",
     "lint": "DENO_NO_PACKAGE_JSON=1 ./node_modules/.bin/eslint src/",
     "lint:fix": "DENO_NO_PACKAGE_JSON=1 ./node_modules/.bin/eslint src/ --fix --ext .js,.jsx,.ts,.tsx",
-    "serve": "DENO_NO_PACKAGE_JSON=1 ./node_modules/.bin/serve -s build",
+    "serve": "deno run --allow-net --allow-read jsr:@std/http/file-server build",
     "generate-graphql-types": "DENO_NO_PACKAGE_JSON=1 ./node_modules/.bin/graphql-codegen --config ./codegen.ts"
   }
 }
