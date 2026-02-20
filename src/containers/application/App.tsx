@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import { matchPath, Outlet, useLocation } from 'react-router-dom';
 import { MainContainer } from 'src/components';
-import NewVersionChecker from 'src/components/NewVersionChecker/NewVersionChecker';
 import { useBackend } from 'src/contexts/backend/backend';
 import { useDevice } from 'src/contexts/device';
 import { PreviousPageProvider } from 'src/contexts/previousPage';
@@ -126,7 +125,6 @@ function App() {
 
   return (
     <PreviousPageProvider>
-      <NewVersionChecker />
       <MainLayout>
         {/* not move portal order */}
         {(location.pathname.includes('/brain') ||
