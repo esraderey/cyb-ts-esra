@@ -38,7 +38,7 @@ function TransitionContainer({
                   <ArrowToggle isOpen={isOpen} />
                 </button>
               </span>
-              {titleOptions}
+              {titleOptions && <div className={styles.titleOptions}>{titleOptions}</div>}
             </div>
           }
         />

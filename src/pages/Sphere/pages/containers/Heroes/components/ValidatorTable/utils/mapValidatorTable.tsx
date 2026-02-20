@@ -69,6 +69,7 @@ const renderColumnsData = () => [
   }),
   columnHelper.accessor('delegation', {
     header: 'Your bond',
+    size: 150,
     sortingFn: (rowA, rowB) => {
       const a = rowA.original.delegation?.amount ? parseFloat(rowA.original.delegation.amount) : 0;
       const b = rowB.original.delegation?.amount ? parseFloat(rowB.original.delegation.amount) : 0;

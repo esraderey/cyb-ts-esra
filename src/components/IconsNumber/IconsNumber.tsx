@@ -50,20 +50,19 @@ export default function IconsNumber({ value, type, isVertical }: Props) {
     .dp(0, BigNumber.ROUND_FLOOR)
     .toNumber();
 
-  const i = new Array(prefix || 1).fill(icons[type]).map((el, i) => {
-    // maybe fix
+  const i = new Array(prefix || 1).fill(icons[type]).map((el, idx) => {
     if (typeof el === 'object') {
-      return React.cloneElement(el, { key: i });
+      return React.cloneElement(el, { key: idx });
     }
 
-    return el;
+    return <span key={idx}>{el}</span>;
   });
 
   const numberStyle = type === 'hydrogen' ? styles.hydrogenPlaceholder : '';
 
   return (
     <span className={styles.wrapper}>
-      <span className={numberStyle}>{number}</span>
+      <span className={cx(styles.number, numberStyle)}>{number}</span>
       <Tooltip
         tooltip={
           <span className={styles.tooltipWrapper}>
