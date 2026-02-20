@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import cx from 'classnames';
+import { useState } from 'react';
 import useQueueIpfsContent from 'src/hooks/useQueueIpfsContent';
 import styles from './styles.module.scss';
 
@@ -14,8 +15,9 @@ type Props = {
 
 function AvatarImgIpfs({ img = '', cidAvatar, addressCyber, className, ...props }: Props) {
   const { fetchWithDetails } = useQueueIpfsContent();
+  const [imgError, setImgError] = useState(false);
 
-  const { data: avatar } = useQuery(
+  const { data: avatar, isLoading } = useQuery(
     ['getAvatar', cidAvatar],
     async () => {
       const details = await fetchWithDetails!(cidAvatar!, 'image');
@@ -29,12 +31,23 @@ function AvatarImgIpfs({ img = '', cidAvatar, addressCyber, className, ...props 
   const avatarImage =
     avatar || (addressCyber && getRoboHashImage(addressCyber)) || img || getRoboHashImage('null');
 
+  // Show placeholder while loading IPFS avatar or if image failed to load
+  if ((cidAvatar && isLoading) || imgError) {
+    return (
+      <div
+        className={cx(styles.imgAvatar, styles.placeholder, className)}
+        title={cidAvatar || addressCyber || ''}
+      />
+    );
+  }
+
   return (
     <img
       {...props}
       src={avatarImage}
       className={cx(styles.imgAvatar, className)}
-      alt="img-avatar"
+      alt=""
+      onError={() => setImgError(true)}
     />
   );
 }
