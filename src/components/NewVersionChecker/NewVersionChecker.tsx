@@ -35,8 +35,13 @@ function NewVersionChecker() {
   const [searchParams, setSearchParams] = useSearchParams();
   const hasCacheBust = searchParams.has(cacheBustParamName);
 
+  // If user already clicked reload but version still doesn't match,
+  // suppress the banner to avoid infinite reload loop
+  const [dismissed, setDismissed] = useState(false);
+
   useEffect(() => {
     if (hasCacheBust) {
+      setDismissed(true);
       setSearchParams((prev) => {
         prev.delete(cacheBustParamName);
         return prev;
@@ -69,7 +74,7 @@ function NewVersionChecker() {
   }, []);
 
   const newVersionAvailable =
-    !isDevEnv() && lastCommit && currentCommitSHA && lastCommit.sha !== currentCommitSHA;
+    !dismissed && !isDevEnv() && lastCommit && currentCommitSHA && lastCommit.sha !== currentCommitSHA;
 
   const text = useMemo(() => {
     if (!newVersionAvailable) {
@@ -84,8 +89,16 @@ function NewVersionChecker() {
         available 👨‍💻🚀 <br />{' '}
         <a
           href={window.location.href}
-          onClick={(e) => {
+          onClick={async (e) => {
             e.preventDefault();
+
+            // Unregister service workers and clear caches so reload fetches fresh index.html
+            if ('serviceWorker' in navigator) {
+              const registrations = await navigator.serviceWorker.getRegistrations();
+              await Promise.all(registrations.map((r) => r.unregister()));
+            }
+            const cacheNames = await caches.keys();
+            await Promise.all(cacheNames.map((name) => caches.delete(name)));
 
             setSearchParams((prev) => {
               prev.set(cacheBustParamName, Date.now().toString());
