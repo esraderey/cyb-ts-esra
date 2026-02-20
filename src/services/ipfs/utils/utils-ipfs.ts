@@ -149,12 +149,7 @@ const fetchIPFSContentFromNode = async (
     }
   } catch (error) {
     console.debug('error fetchIPFSContentFromNode', error);
-    return {
-      cid,
-      availableDownload: true,
-      source: 'node',
-      meta: { ...emptyStats } as IPFSContentMeta,
-    };
+    return undefined;
   }
 };
 
@@ -256,14 +251,15 @@ const getIPFSContent = async (
 
   if (node) {
     callBackFuncStatus?.('trying to get with a node');
-    // console.log('----Fetch from node', cid);
     const ipfsContent = await fetchIPFSContentFromNode(cid, node, controller);
 
-    return ipfsContent;
+    if (ipfsContent?.result) {
+      return ipfsContent;
+    }
+    // Node failed or returned no content — fall through to gateway
   }
 
-  callBackFuncStatus?.('trying to get with a gatway');
-  // console.log('----Fetch from gateway', cid);
+  callBackFuncStatus?.('trying to get with a gateway');
   const respnseGateway = await fetchIPFSContentFromGateway(cid, node, controller);
 
   return respnseGateway;

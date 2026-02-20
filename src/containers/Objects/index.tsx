@@ -44,13 +44,8 @@ function Objects() {
   const [loading, setLoading] = useState(true);
   const [allPage, setAllPage] = useState(0);
 
-  useEffect(() => {
-    getFirstItem();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [getFirstItem]);
-
   function processData(data) {
-    const links = data.result.reduce(
+    const links = (data.result || []).reduce(
       (obj, link) => ({
         ...obj,
         [link.particle]: {
@@ -75,8 +70,13 @@ function Objects() {
     setItems(links);
     setPage(page + 1);
     setLoading(false);
-    setAllPage(Math.ceil(parseFloat(data.pagination.total) / 50));
+    setAllPage(Math.ceil(parseFloat(data.pagination?.total || '0') / 50));
   };
+
+  useEffect(() => {
+    getFirstItem();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [getFirstItem]);
 
   const fetchMoreData = async () => {
     // a fake async api call like which sends

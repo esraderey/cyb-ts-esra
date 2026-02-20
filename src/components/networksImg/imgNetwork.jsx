@@ -52,6 +52,18 @@ function ImgNetwork({ network, marginImg, size, zIndexImg, tooltipStatus }) {
 
   const { fetchWithDetails } = useQueueIpfsContent();
 
+  const getImgFromIpfsByCid = useCallback(
+    async (cidAvatar) => {
+      if (cidAvatar && fetchWithDetails) {
+        return fetchWithDetails(cidAvatar, 'image').then(
+          (details) => details?.content && setImgDenom(details?.content)
+        );
+      }
+      return null;
+    },
+    [fetchWithDetails]
+  );
+
   useEffect(() => {
     if (network && !isNativeChainId(network)) {
       if (Object.hasOwn(chainInfo, 'chainIdImageCid')) {
@@ -70,18 +82,6 @@ function ImgNetwork({ network, marginImg, size, zIndexImg, tooltipStatus }) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chainInfo, network, getImgFromIpfsByCid]);
-
-  const getImgFromIpfsByCid = useCallback(
-    async (cidAvatar) => {
-      if (cidAvatar && fetchWithDetails) {
-        return fetchWithDetails(cidAvatar, 'image').then(
-          (details) => details?.content && setImgDenom(details?.content)
-        );
-      }
-      return null;
-    },
-    [fetchWithDetails]
-  );
 
   if (tooltipStatus) {
     return (

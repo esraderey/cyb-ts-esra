@@ -71,20 +71,6 @@ function Sigma() {
     defaultText: 'current neurons capital valuation',
   });
 
-  useEffect(() => {
-    const { dataCap } = value;
-    if (Object.keys(dataCap).length > 0) {
-      let changeCap = new BigNumber(0);
-      let tempCap = new BigNumber(0);
-      Object.values(dataCap).forEach((item) => {
-        changeCap = changeCap.plus(item.change);
-        tempCap = tempCap.plus(item.currentCap);
-      });
-      updateChangeCap(changeCap);
-      updateTotalCap(tempCap);
-    }
-  }, [value.dataCap, updateTotalCap, value, updateChangeCap]);
-
   const updateTotalCap = (cap) => {
     setValue((item) => ({
       ...item,
@@ -98,6 +84,20 @@ function Sigma() {
       changeCap: new BigNumber(cap).dp(0, BigNumber.ROUND_FLOOR).toNumber(),
     }));
   };
+
+  useEffect(() => {
+    const { dataCap } = value;
+    if (Object.keys(dataCap).length > 0) {
+      let changeCap = new BigNumber(0);
+      let tempCap = new BigNumber(0);
+      Object.values(dataCap).forEach((item) => {
+        changeCap = changeCap.plus(item.change);
+        tempCap = tempCap.plus(item.currentCap);
+      });
+      updateChangeCap(changeCap);
+      updateTotalCap(tempCap);
+    }
+  }, [value.dataCap, updateTotalCap, value, updateChangeCap]);
 
   const updateDataCap = (newData) => {
     setValue((item) => ({

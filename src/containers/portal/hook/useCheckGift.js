@@ -12,6 +12,62 @@ function useCheckGift(citizenship, addressActive, _updateFunc) {
   const [giftData, setGiftData] = useState(null);
   const [loadingGift, setLoadingGift] = useState(true);
 
+  const funcCheckGiftLoop = useCallback(async () => {
+    const result = {};
+    if (citizenship) {
+      const { addresses } = citizenship.extension;
+      if (addresses !== null) {
+        for (let index = 0; index < addresses.length; index++) {
+          const element = addresses[index];
+          if (totalGift === null || !Object.hasOwn(totalGift, element.address)) {
+            const responseGift = await checkGift(element.address);
+            if (responseGift !== null) {
+              result[element.address] = {
+                ...responseGift,
+              };
+            }
+          }
+        }
+      }
+    }
+    return result;
+  }, [citizenship, totalGift]);
+
+  const checkIsClaim = useCallback(
+    async (dataGift) => {
+      if (queryClient && dataGift !== null) {
+        const templGiftData = JSON.parse(JSON.stringify(dataGift));
+        for (const key in dataGift) {
+          if (Object.hasOwn(dataGift, key)) {
+            const element = dataGift[key];
+            const { address, isClaimed } = element;
+            if (isClaimed === undefined || isClaimed === false) {
+              const queryResponseResult = await getIsClaimed(queryClient, address);
+
+              if (queryResponseResult && Object.hasOwn(queryResponseResult, 'is_claimed')) {
+                templGiftData[address].isClaimed = queryResponseResult.is_claimed;
+                if (queryResponseResult.is_claimed) {
+                  const responseClaimedAmount = await getClaimedAmount(queryClient, address);
+                  if (
+                    responseClaimedAmount !== null &&
+                    Object.hasOwn(responseClaimedAmount, 'claim')
+                  ) {
+                    const { claim, multiplier } = responseClaimedAmount;
+                    templGiftData[address].claim = parseFloat(claim);
+                    templGiftData[address].multiplier = parseFloat(multiplier);
+                  }
+                }
+              }
+            }
+          }
+        }
+        return templGiftData;
+      }
+      return null;
+    },
+    [queryClient]
+  );
+
   useEffect(() => {
     const createObjGift = async () => {
       if (citizenship && addressActive !== null) {
@@ -165,62 +221,6 @@ function useCheckGift(citizenship, addressActive, _updateFunc) {
       }
     }
   }, [totalGift]);
-
-  const funcCheckGiftLoop = useCallback(async () => {
-    const result = {};
-    if (citizenship) {
-      const { addresses } = citizenship.extension;
-      if (addresses !== null) {
-        for (let index = 0; index < addresses.length; index++) {
-          const element = addresses[index];
-          if (totalGift === null || !Object.hasOwn(totalGift, element.address)) {
-            const responseGift = await checkGift(element.address);
-            if (responseGift !== null) {
-              result[element.address] = {
-                ...responseGift,
-              };
-            }
-          }
-        }
-      }
-    }
-    return result;
-  }, [citizenship, totalGift]);
-
-  const checkIsClaim = useCallback(
-    async (dataGift) => {
-      if (queryClient && dataGift !== null) {
-        const templGiftData = JSON.parse(JSON.stringify(dataGift));
-        for (const key in dataGift) {
-          if (Object.hasOwn(dataGift, key)) {
-            const element = dataGift[key];
-            const { address, isClaimed } = element;
-            if (isClaimed === undefined || isClaimed === false) {
-              const queryResponseResult = await getIsClaimed(queryClient, address);
-
-              if (queryResponseResult && Object.hasOwn(queryResponseResult, 'is_claimed')) {
-                templGiftData[address].isClaimed = queryResponseResult.is_claimed;
-                if (queryResponseResult.is_claimed) {
-                  const responseClaimedAmount = await getClaimedAmount(queryClient, address);
-                  if (
-                    responseClaimedAmount !== null &&
-                    Object.hasOwn(responseClaimedAmount, 'claim')
-                  ) {
-                    const { claim, multiplier } = responseClaimedAmount;
-                    templGiftData[address].claim = parseFloat(claim);
-                    templGiftData[address].multiplier = parseFloat(multiplier);
-                  }
-                }
-              }
-            }
-          }
-        }
-        return templGiftData;
-      }
-      return null;
-    },
-    [queryClient]
-  );
 
   return {
     totalGift,

@@ -76,6 +76,17 @@ function ActionBar({
   const dispatch = useDispatch();
   const { accounts, defaultAccount } = useSelector((store: RootState) => store.pocket);
 
+  const changeActionBar = (account) => {
+    if (account !== null) {
+      if (account.cyber) {
+        const { keys } = account.cyber;
+        setTypeActionBar(keys);
+      } else {
+        setTypeActionBar('noCyber');
+      }
+    }
+  };
+
   useEffect(() => {
     if (stage === STAGE_INIT) {
       setMakeActive(false);
@@ -117,17 +128,6 @@ function ActionBar({
       }
     }
   }, [selectAccount]);
-
-  const changeActionBar = (account) => {
-    if (account !== null) {
-      if (account.cyber) {
-        const { keys } = account.cyber;
-        setTypeActionBar(keys);
-      } else {
-        setTypeActionBar('noCyber');
-      }
-    }
-  };
 
   async function changeDefaultAccounts() {
     const accountName =

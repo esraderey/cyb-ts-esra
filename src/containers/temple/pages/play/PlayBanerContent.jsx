@@ -35,26 +35,24 @@ const PREFIXES = [
 
 export function TypingText({ content, delay = 30 }) {
   const [displayed, updateDisplay] = useState('');
-  let animID;
+  const animIDRef = useRef(null);
 
   useEffect(() => {
-    updateDisplay(content.charAt(0)); // call once to avoid empty element flash
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    animID = setInterval(typeLetter, delay);
+    updateDisplay(content.charAt(0));
+    animIDRef.current = setInterval(() => {
+      updateDisplay((prevText) => {
+        if (content.length <= prevText.length) {
+          clearInterval(animIDRef.current);
+          return prevText;
+        }
+        return prevText.concat(content.charAt(prevText.length));
+      });
+    }, delay);
     return () => {
       updateDisplay('');
-      clearInterval(animID);
+      clearInterval(animIDRef.current);
     };
-  }, [content, animID, delay, typeLetter]);
-
-  const typeLetter = () => {
-    updateDisplay((prevText) => {
-      if (content.length <= prevText.length) {
-        clearInterval(animID);
-      }
-      return prevText.concat(content.charAt(prevText.length));
-    });
-  };
+  }, [content, delay]);
 
   return displayed;
 }

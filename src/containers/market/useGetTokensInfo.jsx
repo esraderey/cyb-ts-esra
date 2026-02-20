@@ -42,10 +42,6 @@ function useGetCybernomics() {
   const [poolsData, setPoolsData] = useState([]);
   const [totalSupplyData, setTotalSupplyData] = useState({});
 
-  useEffect(() => {
-    getGOL();
-  }, [getGOL]);
-
   const getGOL = async () => {
     const GOL = new Token(ChainId.MAINNET, '0xF4ecdBa8ba4144Ff3a2d8792Cad9051431Aa4F64', 0);
     const pair = await Fetcher.fetchPairData(GOL, WETH[GOL.chainId]);
@@ -63,6 +59,10 @@ function useGetCybernomics() {
       gol,
     }));
   };
+
+  useEffect(() => {
+    getGOL();
+  }, [getGOL]);
 
   // useEffect(() => {
   //   if (!marketData.loading) {

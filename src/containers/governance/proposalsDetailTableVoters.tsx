@@ -53,11 +53,6 @@ function ProposalsIdDetailTableVoters({ updateFunc, ...props }) {
   const [loading, setLoading] = useState(true);
   const [allPage, setAllPage] = useState(0);
 
-  useEffect(() => {
-    getFirstItem();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [getFirstItem]);
-
   const getFirstItem = async () => {
     let tempAllPage = 0;
     let firstItem = [];
@@ -76,6 +71,11 @@ function ProposalsIdDetailTableVoters({ updateFunc, ...props }) {
     setAllPage(tempAllPage);
     setLoading(false);
   };
+
+  useEffect(() => {
+    getFirstItem();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [getFirstItem]);
 
   const fetchMoreData = async () => {
     let nextItem = [];

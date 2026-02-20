@@ -129,31 +129,6 @@ function useGetMarketData() {
     getPpools();
   }, [dataPools, queryClient, tracesDenom]);
 
-  useEffect(() => {
-    try {
-      if (Object.keys(dataTotal).length > 0 && Object.keys(poolsTotal).length > 0) {
-        const marketDataObj = {};
-        marketDataObj[DENOM_LIQUID] = 1;
-        Object.keys(dataTotal).forEach((keyI) => {
-          Object.keys(poolsTotal).forEach((keyJ) => {
-            const itemJ = poolsTotal[keyJ];
-            const { reserveCoinDenoms } = itemJ;
-            if (reserveCoinDenoms[0] === DENOM_LIQUID && reserveCoinDenoms[1] === keyI) {
-              marketDataObj[keyI] = itemJ.price;
-            }
-          });
-        });
-        const tempdataPool = getMarketDataPool(marketDataObj);
-        const resultMarketDataObj = { ...marketDataObj, ...tempdataPool };
-        setMarketData(resultMarketDataObj);
-        saveToLocalStorage(resultMarketDataObj);
-      }
-    } catch (error) {
-      console.log('error', error);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dataTotal, poolsTotal, getMarketDataPool, saveToLocalStorage]);
-
   const saveToLocalStorage = (obj) => {
     if (Object.keys(obj).length > 0) {
       localStorage.setItem('marketData', JSON.stringify(obj));
@@ -202,6 +177,31 @@ function useGetMarketData() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [dataTotal, poolsTotal, tracesDenom]
   );
+
+  useEffect(() => {
+    try {
+      if (Object.keys(dataTotal).length > 0 && Object.keys(poolsTotal).length > 0) {
+        const marketDataObj = {};
+        marketDataObj[DENOM_LIQUID] = 1;
+        Object.keys(dataTotal).forEach((keyI) => {
+          Object.keys(poolsTotal).forEach((keyJ) => {
+            const itemJ = poolsTotal[keyJ];
+            const { reserveCoinDenoms } = itemJ;
+            if (reserveCoinDenoms[0] === DENOM_LIQUID && reserveCoinDenoms[1] === keyI) {
+              marketDataObj[keyI] = itemJ.price;
+            }
+          });
+        });
+        const tempdataPool = getMarketDataPool(marketDataObj);
+        const resultMarketDataObj = { ...marketDataObj, ...tempdataPool };
+        setMarketData(resultMarketDataObj);
+        saveToLocalStorage(resultMarketDataObj);
+      }
+    } catch (error) {
+      console.log('error', error);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dataTotal, poolsTotal, getMarketDataPool, saveToLocalStorage]);
 
   return { marketData, dataTotal };
 }

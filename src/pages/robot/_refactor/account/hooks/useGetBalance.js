@@ -127,6 +127,17 @@ function useGetBalance(address, updateAddress) {
     getBalance();
   }, [queryClient, rpc, addressActive]);
 
+  const getCalculationBalance = (data) => {
+    const balances = {};
+    if (Object.keys(data).length > 0) {
+      data.forEach((item) => {
+        balances[item.denom] = parseFloat(item.amount);
+      });
+    }
+
+    return balances;
+  };
+
   useEffect(() => {
     const getBalance = async () => {
       const initValueTokenAmount = {
@@ -143,32 +154,36 @@ function useGetBalance(address, updateAddress) {
       };
 
       if (queryClient && addressActive !== null && !loadingAuthAccounts) {
-        setBalanceToken(initValueToken);
-        setLoadingBalanceToken(true);
-        const getAllBalancesPromise = await queryClient.getAllBalances(addressActive);
-        const balancesToken = getCalculationBalance(getAllBalancesPromise);
-        if (Object.keys(balancesToken).length > 0) {
-          Object.keys(balancesToken).forEach((key) => {
-            if (Object.hasOwn(balancesToken, key) && key !== BASE_DENOM) {
-              const elementBalancesToken = balancesToken[key];
+        try {
+          setBalanceToken(initValueToken);
+          setLoadingBalanceToken(true);
+          const getAllBalancesPromise = await queryClient.getAllBalances(addressActive);
+          const balancesToken = getCalculationBalance(getAllBalancesPromise);
+          if (Object.keys(balancesToken).length > 0) {
+            Object.keys(balancesToken).forEach((key) => {
+              if (Object.hasOwn(balancesToken, key) && key !== BASE_DENOM) {
+                const elementBalancesToken = balancesToken[key];
 
-              if (
-                Object.hasOwn(initValueTokenAmount, key) &&
-                Object.hasOwn(initValueTokenAmount[key], 'total')
-              ) {
-                initValueTokenAmount[key].total = elementBalancesToken;
-                initValueTokenAmount[key].liquid = elementBalancesToken;
-              } else {
-                initValueTokenAmount[key] = elementBalancesToken;
+                if (
+                  Object.hasOwn(initValueTokenAmount, key) &&
+                  Object.hasOwn(initValueTokenAmount[key], 'total')
+                ) {
+                  initValueTokenAmount[key].total = elementBalancesToken;
+                  initValueTokenAmount[key].liquid = elementBalancesToken;
+                } else {
+                  initValueTokenAmount[key] = elementBalancesToken;
+                }
+                if (Object.hasOwn(originalVesting, key) && Object.hasOwn(vested, key)) {
+                  const vestedTokens = parseFloat(originalVesting[key]) - parseFloat(vested[key]);
+                  const liquidAmount = elementBalancesToken - vestedTokens;
+                  initValueTokenAmount[key].liquid = liquidAmount > 0 ? liquidAmount : 0;
+                  initValueTokenAmount[key].vested = vestedTokens;
+                }
               }
-              if (Object.hasOwn(originalVesting, key) && Object.hasOwn(vested, key)) {
-                const vestedTokens = parseFloat(originalVesting[key]) - parseFloat(vested[key]);
-                const liquidAmount = elementBalancesToken - vestedTokens;
-                initValueTokenAmount[key].liquid = liquidAmount > 0 ? liquidAmount : 0;
-                initValueTokenAmount[key].vested = vestedTokens;
-              }
-            }
-          });
+            });
+          }
+        } catch (e) {
+          console.error('getBalance tokens error:', e);
         }
       }
       // console.log(`initValueTokenAmount`, initValueTokenAmount);
@@ -184,17 +199,6 @@ function useGetBalance(address, updateAddress) {
     loadingAuthAccounts,
     getCalculationBalance,
   ]);
-
-  const getCalculationBalance = (data) => {
-    const balances = {};
-    if (Object.keys(data).length > 0) {
-      data.forEach((item) => {
-        balances[item.denom] = parseFloat(item.amount);
-      });
-    }
-
-    return balances;
-  };
 
   return { balance, loadingBalanceInfo, balanceToken, loadingBalanceToken };
 }

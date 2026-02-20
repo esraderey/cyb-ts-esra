@@ -24,6 +24,36 @@ function useCheckRelease(totalGift, addressActive, loadingGift, _updateFunc, cur
   const [totalBalanceClaimAmount, setTotalBalanceClaimAmount] = useState(0);
   const [alreadyClaimed, setAlreadyClaimed] = useState(0);
 
+  const initState = () => {
+    setLoadingRelease(false);
+    setTotalRelease(null);
+    setTotalBalanceClaimAmount(0);
+  };
+
+  const calculationStateRelease = (dataQuery) => {
+    const { stage, balance_claim: balanceClaim, address } = dataQuery;
+
+    const releaseAddObj = {
+      balanceClaim: 0,
+      stage: 0,
+      addressOwner: '',
+    };
+
+    if (balanceClaim) {
+      releaseAddObj.balanceClaim = parseFloat(balanceClaim);
+    }
+
+    if (stage) {
+      releaseAddObj.stage = parseFloat(stage);
+    }
+
+    if (address) {
+      releaseAddObj.addressOwner = address;
+    }
+
+    return releaseAddObj;
+  };
+
   useEffect(() => {
     const checkReleaseFunc = async () => {
       if (!loadingGift && totalGift !== undefined && totalGift === null) {
@@ -86,36 +116,6 @@ function useCheckRelease(totalGift, addressActive, loadingGift, _updateFunc, cur
     currentStage,
     initState,
   ]);
-
-  const initState = () => {
-    setLoadingRelease(false);
-    setTotalRelease(null);
-    setTotalBalanceClaimAmount(0);
-  };
-
-  const calculationStateRelease = (dataQuery) => {
-    const { stage, balance_claim: balanceClaim, address } = dataQuery;
-
-    const releaseAddObj = {
-      balanceClaim: 0,
-      stage: 0,
-      addressOwner: '',
-    };
-
-    if (balanceClaim) {
-      releaseAddObj.balanceClaim = parseFloat(balanceClaim);
-    }
-
-    if (stage) {
-      releaseAddObj.stage = parseFloat(stage);
-    }
-
-    if (address) {
-      releaseAddObj.addressOwner = address;
-    }
-
-    return releaseAddObj;
-  };
 
   return {
     totalRelease,

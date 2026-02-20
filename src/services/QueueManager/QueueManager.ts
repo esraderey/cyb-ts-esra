@@ -70,10 +70,10 @@ const strategies = {
   helia: new QueueStrategy(
     {
       db: { timeout: 5000, maxConcurrentExecutions: 999 },
-      node: { timeout: 60 * 1000, maxConcurrentExecutions: 50 },
-      gateway: { timeout: 10000, maxConcurrentExecutions: 11 },
+      node: { timeout: 15 * 1000, maxConcurrentExecutions: 50 },
+      gateway: { timeout: 15000, maxConcurrentExecutions: 30 },
     },
-    ['db', 'node', 'gateway']
+    ['db', 'gateway', 'node']
   ),
 };
 
@@ -135,6 +135,7 @@ class QueueManager {
 
   private fetchData$(item: QueueItem) {
     const { cid, source, callbacks, controller } = item;
+    console.log(`🔄 fetchData: ${cid.slice(0, 12)}... source=${source}`);
     // const abortController = controller || new AbortController();
     const settings = this.strategy.settings[source];
     this.executing[source].add(cid);
@@ -178,7 +179,7 @@ class QueueManager {
       map((result): QueueItemResult => {
         return {
           item,
-          status: result ? 'completed' : 'error',
+          status: result?.result ? 'completed' : 'error',
           source,
           result,
         };
@@ -306,10 +307,8 @@ class QueueManager {
 
     this.queue$
       .pipe(
-        withLatestFrom(isInitialized$),
-        filter(([, isInitialized]) => isInitialized),
         debounceTime(this.queueDebounceMs),
-        map(([queue]) => this.cancelDeprioritizedItems(queue)),
+        map((queue) => this.cancelDeprioritizedItems(queue)),
         mergeMap((queue) => {
           const workItems = this.getItemBySourceAndPriority(queue);
           // console.log('---workItems', workItems);
@@ -324,9 +323,8 @@ class QueueManager {
       )
       .subscribe(({ item, status, source, result }) => {
         const { cid } = item;
+        console.log(`📦 result: ${cid.slice(0, 12)}... source=${source} status=${status} hasResult=${!!result?.result}`);
         const callbacks = this.queue$.value.get(cid)?.callbacks || [];
-        // fix to process dublicated items
-        // debugCid(cid, 'subscribe', cid, source, status, result, callbacks);
 
         callbacks.map((callback) => callback(cid, status, source, result));
 
@@ -363,7 +361,7 @@ class QueueManager {
   public enqueue(cid: string, callback: QueueItemCallback, options: QueueItemOptions = {}): void {
     const queue = this.queue$.value;
     const existingItem = queue.get(cid);
-    // debugCid(cid, '----/--enqueue ', cid, existingItem);
+    console.log(`📥 enqueue: ${cid.slice(0, 12)}... source=${this.strategy.order[0]} queueSize=${queue.size}`);
 
     // In case if item already in queue,
     // just attach one more callback to quieued item

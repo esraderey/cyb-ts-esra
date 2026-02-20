@@ -170,10 +170,6 @@ function ActionBarContainer({ validators, updateFnc }: Props) {
     setErrorMessage(error.toString());
   };
 
-  useEffect(() => {
-    clearFunc();
-  }, [clearFunc]);
-
   const clearFunc = () => {
     setTxHash(null);
     setAmount('');
@@ -182,6 +178,10 @@ function ActionBarContainer({ validators, updateFnc }: Props) {
     setTxType(null);
     setStage(STAGE_INIT);
   };
+
+  useEffect(() => {
+    clearFunc();
+  }, [clearFunc]);
 
   const delegateTokens = async () => {
     if (signer && signingClient) {

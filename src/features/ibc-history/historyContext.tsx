@@ -256,6 +256,14 @@ function HistoryContextProvider({ children }: { children: React.ReactNode }) {
     getItem();
   }, [addressActive]);
 
+  const updateStatusByTxHash = async (txHash: string, status: StatusTx) => {
+    const itemCollection = dbIbcHistory.historiesItems.where({ txHash });
+    const itemByTxHash = await itemCollection.toArray();
+    if (itemByTxHash && itemByTxHash[0].status !== status) {
+      itemCollection.modify({ status });
+    }
+  };
+
   // Trace pending/timeout items on initial load (only when address changes)
   useEffect(() => {
     const tracePendingItems = async () => {
@@ -325,14 +333,6 @@ function HistoryContextProvider({ children }: { children: React.ReactNode }) {
           setUpdate((item) => item + 1);
         }
       });
-    }
-  };
-
-  const updateStatusByTxHash = async (txHash: string, status: StatusTx) => {
-    const itemCollection = dbIbcHistory.historiesItems.where({ txHash });
-    const itemByTxHash = await itemCollection.toArray();
-    if (itemByTxHash && itemByTxHash[0].status !== status) {
-      itemCollection.modify({ status });
     }
   };
 

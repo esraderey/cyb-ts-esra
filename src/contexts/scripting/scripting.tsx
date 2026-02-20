@@ -35,6 +35,9 @@ function ScriptingProvider({ children }: { children: React.ReactNode }) {
   const embeddingApiRef = useRef<Option<Remote<EmbeddingApi>>>();
 
   const dispatch = useAppDispatch();
+  const runeEntryPoints = useAppSelector(selectRuneEntypoints);
+  const citizenship = useAppSelector(selectCurrentPassport);
+  const secrets = useAppSelector((state) => state.scripting.context.secrets);
 
   useEffect(() => {
     runeBackend.pushContext('secrets', secrets);
@@ -68,11 +71,6 @@ function ScriptingProvider({ children }: { children: React.ReactNode }) {
     setupObservervable();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [embeddingApi$, runeBackend, secrets]);
-
-  const runeEntryPoints = useAppSelector(selectRuneEntypoints);
-
-  const citizenship = useAppSelector(selectCurrentPassport);
-  const secrets = useAppSelector((state) => state.scripting.context.secrets);
 
   useEffect(() => {
     if (!isSoulInitialized || !runeRef.current) {

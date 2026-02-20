@@ -291,23 +291,6 @@ function GetCitizenship({ defaultAccount }) {
     return null;
   }, [valueNickname]);
 
-  useEffect(() => {
-    const checkAddress = async () => {
-      if (step === STEP_CHECK_ADDRESS_CHECK_FNC && queryClient && addressActive !== null) {
-        const { bech32 } = addressActive;
-        const response = await queryClient.getAccount(bech32);
-        await getBalanceAndNickname(bech32);
-        if (response && Object.hasOwn(response, 'accountNumber')) {
-          setStep(STEP_RULES);
-        } else {
-          setStep(STEP_ACTIVE_ADD);
-        }
-      }
-    };
-    checkAddress();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [queryClient, addressActive, step, getBalanceAndNickname]);
-
   const getBalanceAndNickname = useCallback(
     async (bech32) => {
       if (usePriceNickname !== null) {
@@ -329,6 +312,23 @@ function GetCitizenship({ defaultAccount }) {
     },
     [queryClient, usePriceNickname]
   );
+
+  useEffect(() => {
+    const checkAddress = async () => {
+      if (step === STEP_CHECK_ADDRESS_CHECK_FNC && queryClient && addressActive !== null) {
+        const { bech32 } = addressActive;
+        const response = await queryClient.getAccount(bech32);
+        await getBalanceAndNickname(bech32);
+        if (response && Object.hasOwn(response, 'accountNumber')) {
+          setStep(STEP_RULES);
+        } else {
+          setStep(STEP_ACTIVE_ADD);
+        }
+      }
+    };
+    checkAddress();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queryClient, addressActive, step, getBalanceAndNickname]);
 
   const checkAddressNetwork = useCallback(async () => {
     if (step === STEP_ACTIVE_ADD && queryClient && addressActive !== null) {

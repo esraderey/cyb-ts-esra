@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useMemo, useState } from 'react';
+import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import useQueryContract from 'src/hooks/contract/useQueryContract';
 import useGetMarketData from 'src/hooks/useGetMarketData';
 import useConvertMarketData from 'src/hooks/warp/useConvertMarketData';
@@ -42,7 +42,12 @@ function DataProvider({ children }: { children: React.ReactNode }) {
     particles: {},
   });
 
-  const filterParticles = filterContractQuery?.data?.map((item) => item[1]);
+  const filterParticlesRaw = filterContractQuery?.data?.map((item) => item[1]);
+  const filterParticlesRef = useRef<string[]>([]);
+  if (filterParticlesRaw && JSON.stringify(filterParticlesRaw) !== JSON.stringify(filterParticlesRef.current)) {
+    filterParticlesRef.current = filterParticlesRaw;
+  }
+  const filterParticles = filterParticlesRef.current;
 
   const resultMarketData = Object.keys(convertMarketData).length ? convertMarketData : marketData;
 
@@ -86,7 +91,7 @@ function DataProvider({ children }: { children: React.ReactNode }) {
       marketData: resultMarketData,
       dataTotalSupply: dataTotal,
       block: blockHeight,
-      filterParticles: filterParticles || [],
+      filterParticles,
     }),
     [resultMarketData, dataTotal, blockHeight, filterParticles]
   );
