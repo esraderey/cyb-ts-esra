@@ -114,8 +114,9 @@ function BackendProvider({ children }: { children: React.ReactNode }) {
     const startIpfsWithRetry = async (retries = 3, delays = [5000, 15000, 45000]) => {
       for (let attempt = 0; attempt <= retries; attempt++) {
         try {
+          const ipfsOpts = getIpfsOpts();
           // eslint-disable-next-line no-await-in-loop
-          await backgroundWorkerInstance.ipfsApi.start(getIpfsOpts());
+          await backgroundWorkerInstance.ipfsApi.start(ipfsOpts);
           setIpfsError(null);
           if (attempt > 0) {
             console.log(`🔰 IPFS connected after ${attempt + 1} attempts`);
@@ -181,10 +182,7 @@ function BackendProvider({ children }: { children: React.ReactNode }) {
     })();
   }, [myAddress]);
 
-  const ipfsApi = useMemo(
-    () => (isIpfsInitialized ? backgroundWorkerInstance.ipfsApi : null),
-    [isIpfsInitialized]
-  );
+  const ipfsApi = useMemo(() => backgroundWorkerInstance.ipfsApi, []);
 
   const valueMemo = useMemo(
     () =>

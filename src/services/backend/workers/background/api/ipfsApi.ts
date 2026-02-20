@@ -26,23 +26,18 @@ export const createIpfsApi = (rune: RuneEngine, broadcastApi: BroadcastChannelSe
     try {
       const ipfsNode = ipfsInstance$.getValue();
       if (ipfsNode) {
-        // console.log('Ipfs node already started!');
         setTimeout(() => broadcastApi.postServiceStatus('ipfs', 'started'), 0);
         return Promise.resolve();
-        // await ipfsNode.stop();
       }
       broadcastApi.postServiceStatus('ipfs', 'starting');
-      console.time('🔋 ipfs initialized');
 
       const newIpfsNode = await initIpfsNode(ipfsOpts);
-      console.timeEnd('🔋 ipfs initialized');
 
       ipfsInstance$.next(newIpfsNode);
       setTimeout(() => broadcastApi.postServiceStatus('ipfs', 'started'), 0);
       return true;
     } catch (err) {
-      console.log('----ipfs node init error ', err);
-      const msg = err instanceof Error ? err.message : (err as string);
+      const msg = err instanceof Error ? err.message : String(err);
       broadcastApi.postServiceStatus('ipfs', 'error', msg);
       throw Error(msg);
     }

@@ -11,7 +11,7 @@ import { AddOptions, UnixFS, unixfs } from '@helia/unixfs';
 import { bootstrap } from '@libp2p/bootstrap';
 import { webRTC, webRTCDirect } from '@libp2p/webrtc';
 import { webSockets } from '@libp2p/websockets';
-import { webTransport } from '@libp2p/webtransport';
+// webTransport removed — package not installed, WebSocket+WebRTC sufficient
 import { multiaddr, protocols } from '@multiformats/multiaddr';
 import { LsResult } from 'ipfs-core-types/src/pin';
 import { circuitRelayTransport } from 'libp2p/circuit-relay';
@@ -40,7 +40,6 @@ const libp2pFactory = async (datastore: IDBDatastore, bootstrapList: string[] = 
     // },
     transports: [
       webSockets(),
-      webTransport(),
       webRTC({
         rtcConfiguration: {
           iceServers: [

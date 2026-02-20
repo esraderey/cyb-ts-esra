@@ -35,9 +35,6 @@ export async function initIpfsNode(options: IpfsOptsType): Promise<CybIpfsNode> 
   const instance = new EnhancedClass();
 
   await instance.init({ url: restOptions.urlOpts });
-  // TODO: REFACT
-  //   instance.connMgrGracePeriod = await getNodeAutoDialInterval(instance);
-  // window.ipfs = instance;
 
   await instance.reconnectToSwarm();
   return instance;

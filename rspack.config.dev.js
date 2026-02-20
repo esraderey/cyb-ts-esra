@@ -11,18 +11,31 @@ module.exports = merge(commonConfig, {
     host: 'localhost',
     port: process.env.PORT_APP || '3001',
     hot: true,
+    client: {
+      overlay: false,
+    },
     // ngrok tunnel
     allowedHosts: ['.ngrok-free.app'],
     headers: {
       'Access-Control-Allow-Origin': '*',
     },
     historyApiFallback: true,
+    // Fix .ts worker files served with video/mp2t MIME type
+    setupMiddlewares: (middlewares, devServer) => {
+      devServer.app.use((req, res, next) => {
+        if (req.url.endsWith('.ts') || req.url.match(/\.ts\?/)) {
+          res.setHeader('Content-Type', 'application/javascript');
+        }
+        next();
+      });
+      return middlewares;
+    },
   },
   module: {
     rules: [
       {
         test: /\.[jt]sx?$/,
-        exclude: /node_modules/,
+        exclude: [/node_modules/, /\/workers\/(?:background|db)\/worker\.ts$/],
         include: [/src/, /netlify\/mocks/],
         use: {
           loader: 'builtin:swc-loader',

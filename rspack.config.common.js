@@ -11,6 +11,101 @@ if (process.env.IPFS_DEPLOY) {
   console.log('*** IPFS Version ***');
 }
 
+// Plugin to propagate resolve/plugins config to worker child compilers
+// (worker-rspack-loader creates a child compiler that doesn't inherit these)
+class WorkerConfigPlugin {
+  constructor(options) {
+    this.resolve = options.resolve;
+    this.plugins = options.plugins || [];
+  }
+  apply(compiler) {
+    compiler.hooks.compilation.tap('WorkerConfigPlugin', (compilation) => {
+      compilation.hooks.childCompiler.tap('WorkerConfigPlugin', (childCompiler) => {
+        if (!childCompiler.name || !childCompiler.name.startsWith('worker-loader')) return;
+        // Merge resolve config
+        const existingResolve = childCompiler.options.resolve || {};
+        childCompiler.options.resolve = {
+          ...existingResolve,
+          fallback: { ...(existingResolve.fallback || {}), ...this.resolve.fallback },
+          alias: { ...(existingResolve.alias || {}), ...this.resolve.alias },
+          extensions: this.resolve.extensions || existingResolve.extensions,
+          modules: this.resolve.modules || existingResolve.modules,
+          symlinks: this.resolve.symlinks !== undefined ? this.resolve.symlinks : existingResolve.symlinks,
+        };
+        // Apply plugins to child compiler
+        for (const plugin of this.plugins) {
+          plugin.apply(childCompiler);
+        }
+      });
+    });
+  }
+}
+
+const resolveFallback = {
+  buffer: require.resolve('buffer'),
+  fs: false,
+  zlib: false,
+  path: false,
+  url: false,
+  crypto: false,
+  assert: path.resolve(__dirname, 'src/utils/assert-shim.js'),
+  https: false,
+  os: path.resolve(__dirname, 'src/utils/os-shim.js'),
+  http: false,
+  stream: require.resolve('stream-browserify'),
+  constants: false,
+  child_process: false,
+  dgram: false,
+  net: false,
+  module: false,
+  util: false,
+  events: require.resolve('events'),
+  timers: false,
+};
+
+const resolveAlias = {
+  'react/jsx-dev-runtime.js': 'react/jsx-dev-runtime',
+  'react/jsx-runtime.js': 'react/jsx-runtime',
+  src: path.resolve(__dirname, 'src/'),
+  components: path.resolve(__dirname, 'src', 'components'),
+  images: path.resolve(__dirname, 'src', 'image'),
+  sounds: path.resolve(__dirname, 'src', 'sounds'),
+  // Stub Node.js-only packages that get pulled in by libp2p dependencies
+  // (nat-port-mapper → default-gateway → execa → human-signals/get-stream)
+  // These are not needed in browser (libp2p uses WebRTC/WebSocket transports)
+  '@achingbrain/nat-port-mapper': false,
+  'default-gateway': false,
+  execa: false,
+};
+
+const resolveModules = ['node_modules', path.resolve(__dirname, 'node_modules/.deno/multiformats@13.4.2/node_modules')];
+
+const resolveExtensions = ['*', '.js', '.jsx', '.scss', '.svg', '.css', '.json', '.ts', '.tsx', '.mp3'];
+
+const nodeReplacementPlugin = new rspack.NormalModuleReplacementPlugin(/node:/, (resource) => {
+  const mod = resource.request.replace(/^node:/, '');
+  switch (mod) {
+    case 'buffer':
+      resource.request = 'buffer';
+      break;
+    case 'stream':
+      resource.request = 'readable-stream';
+      break;
+    case 'events':
+      resource.request = 'events';
+      break;
+    default:
+      resource.request = mod;
+      break;
+  }
+});
+
+const providePlugin = new rspack.ProvidePlugin({
+  cyblog: ['src/utils/logging/cyblog.ts', 'default'],
+  process: 'process/browser',
+  Buffer: ['buffer', 'Buffer'],
+});
+
 const config = {
   devtool: 'cheap-module-source-map',
   entry: {
@@ -24,54 +119,38 @@ const config = {
     clean: true,
   },
   resolve: {
-    fallback: {
-      buffer: require.resolve('buffer'),
-      fs: false,
-      zlib: false,
-      path: false,
-      url: false,
-      crypto: false,
-      assert: false,
-      https: false,
-      os: false,
-      http: false,
-      stream: require.resolve('stream-browserify'),
-      constants: false,
-    },
-    extensions: [
-      '*',
-      '.js',
-      '.jsx',
-      '.scss',
-      '.svg',
-      '.css',
-      '.json',
-      '.ts',
-      '.tsx',
-      '.mp3',
-    ],
-    alias: {
-      'react/jsx-dev-runtime.js': 'react/jsx-dev-runtime',
-      'react/jsx-runtime.js': 'react/jsx-runtime',
-      src: path.resolve(__dirname, 'src/'),
-      components: path.resolve(__dirname, 'src', 'components'),
-      images: path.resolve(__dirname, 'src', 'image'),
-      sounds: path.resolve(__dirname, 'src', 'sounds'),
-    },
+    fallback: resolveFallback,
+    extensions: resolveExtensions,
+    alias: resolveAlias,
+    modules: resolveModules,
   },
   plugins: [
-    new rspack.NormalModuleReplacementPlugin(/node:/, (resource) => {
-      const mod = resource.request.replace(/^node:/, '');
-      switch (mod) {
-        case 'buffer':
-          resource.request = 'buffer';
-          break;
-        case 'stream':
-          resource.request = 'readable-stream';
-          break;
-        default:
-          throw new Error(`Not found ${mod}`);
-      }
+    nodeReplacementPlugin,
+    new WorkerConfigPlugin({
+      resolve: { fallback: resolveFallback, alias: resolveAlias, extensions: resolveExtensions, modules: resolveModules, symlinks: true },
+      plugins: [
+        new rspack.NormalModuleReplacementPlugin(/node:/, (resource) => {
+          const mod = resource.request.replace(/^node:/, '');
+          switch (mod) {
+            case 'buffer': resource.request = 'buffer'; break;
+            case 'stream': resource.request = 'readable-stream'; break;
+            case 'events': resource.request = 'events'; break;
+            default: resource.request = mod; break;
+          }
+        }),
+        // Fix cyb-rune-wasm relative import that breaks in .deno/ symlink structure
+        new rspack.NormalModuleReplacementPlugin(
+          /\.\.\/\.\.\/src\/services\/scripting\/wasmBindings\.js$/,
+          (resource) => {
+            resource.request = path.resolve(__dirname, 'src/services/scripting/wasmBindings.js');
+          }
+        ),
+        new rspack.ProvidePlugin({
+          cyblog: ['src/utils/logging/cyblog.ts', 'default'],
+          process: 'process/browser',
+          Buffer: ['buffer', 'Buffer'],
+        }),
+      ],
     }),
     // BootloaderPlugin disabled — see TODO above
     new rspack.HtmlRspackPlugin({
@@ -107,17 +186,37 @@ const config = {
       'process.env.DENOM_LIQUID': JSON.stringify(process.env.DENOM_LIQUID),
       'process.env.BECH32_PREFIX': JSON.stringify(process.env.BECH32_PREFIX),
     }),
-    new rspack.ProvidePlugin({
-      cyblog: ['src/utils/logging/cyblog.ts', 'default'],
-      process: 'process/browser',
-      Buffer: ['buffer', 'Buffer'],
-    }),
+    providePlugin,
   ],
   module: {
     rules: [
       {
+        test: /\/workers\/(?:background|db)\/worker\.ts$/,
+        use: [
+          {
+            loader: 'worker-rspack-loader',
+            options: {
+              filename: '[name].[contenthash:8].worker.js',
+              esModule: true,
+            },
+          },
+          {
+            loader: 'builtin:swc-loader',
+            options: {
+              jsc: {
+                parser: { syntax: 'typescript', tsx: false },
+                transform: { react: { runtime: 'automatic' } },
+              },
+              env: {
+                targets: 'chrome >= 87, firefox >= 78, safari >= 14, edge >= 88',
+              },
+            },
+          },
+        ],
+      },
+      {
         test: /\.[jt]sx?$/,
-        exclude: /node_modules/,
+        exclude: [/node_modules/, /\/workers\/(?:background|db)\/worker\.ts$/],
         include: [/src/, /netlify\/mocks/],
         use: {
           loader: 'builtin:swc-loader',

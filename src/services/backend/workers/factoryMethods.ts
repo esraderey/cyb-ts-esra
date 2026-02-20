@@ -9,7 +9,7 @@ const isSharedWorkersSupported = typeof SharedWorker !== 'undefined';
 const isSharedWorkerUsed = isSharedWorkersSupported && !process.env.IS_DEV;
 
 // apply serializers for custom types
-function installTransferHandlers() {
+export function installTransferHandlers() {
   transferHandlers.set('IPFSContent', IPFSContentTransferHandler);
   transferHandlers.set('observable', {
     canHandle: (value: unknown): value is Observable<unknown> => {
@@ -133,6 +133,17 @@ export function createWorkerApi<T>(
   return { worker, workerApiProxy: wrap<T>(worker) };
 }
 
+
+// Wrap already-created worker with comlink proxy (Worker must be created inline for rspack bundling)
+export function createWorkerFromInstance<T>(
+  worker: Worker,
+  workerName: string
+): { worker: WorkerType; workerApiProxy: Remote<T> } {
+  installTransferHandlers();
+  // installLoggingHandler(worker, workerName);
+  return { worker, workerApiProxy: wrap<T>(worker) };
+}
+
 export function exposeWorkerApi<T>(worker: WorkerType, api: T) {
   installTransferHandlers();
   if (typeof worker.onconnect !== 'undefined') {
@@ -143,7 +154,8 @@ export function exposeWorkerApi<T>(worker: WorkerType, api: T) {
       expose(api, port);
     };
   } else {
-    // overrideLogging(worker);
+    // Don't use overrideLogging for regular workers - it calls self.postMessage()
+    // which interferes with comlink's message handling. Use BroadcastChannel instead.
     expose(api);
   }
 }

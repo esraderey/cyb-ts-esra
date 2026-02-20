@@ -9,5 +9,8 @@
     "format": "DENO_NO_PACKAGE_JSON=1 ./node_modules/.bin/biome format --write src/",
     "serve": "deno run --allow-net --allow-read jsr:@std/http/file-server build",
     "generate-graphql-types": "DENO_NO_PACKAGE_JSON=1 ./node_modules/.bin/graphql-codegen --config ./codegen.ts"
+  },
+  "imports": {
+    "worker-rspack-loader": "npm:worker-rspack-loader@^3.1.2"
   }
 }
