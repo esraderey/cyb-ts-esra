@@ -43,7 +43,7 @@ export async function getTransactions({
       params: {
         'pagination.offset': offset,
         'pagination.limit': limit,
-        orderBy,
+        order_by: orderBy,
         events: events.map((evn) => `${evn.key}='${evn.value}'`),
       },
       paramsSerializer: {
