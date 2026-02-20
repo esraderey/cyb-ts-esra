@@ -79,7 +79,7 @@ const fetchIPFSContentFromNode = async (
 ): Promise<Option<IPFSContent>> => {
   const controllerLegacy = controller || new AbortController();
   const { signal } = controllerLegacy;
-  let timer: NodeJS.Timeout | undefined;
+  let timer: ReturnType<typeof setTimeout> | undefined;
 
   if (!node) {
     console.log('--------fetchIPFSContentFromNode NO NODE INTIALIZED--------');

@@ -15,7 +15,7 @@ jest.mock('src/services/ipfs/utils/utils-ipfs', () => ({
 const QUEUE_DEBOUNCE_MS = 100;
 const TIMEOUT_MS = 300;
 
-const waitUtilQueueDebounce = (callback: () => void): NodeJS.Timeout =>
+const waitUtilQueueDebounce = (callback: () => void): ReturnType<typeof setTimeout> =>
   setTimeout(() => {
     callback();
   }, QUEUE_DEBOUNCE_MS);
