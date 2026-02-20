@@ -1,5 +1,5 @@
-import { useEffect, useMemo } from 'react';
-import { Link, matchPath, Outlet, useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
+import { matchPath, Outlet, useLocation } from 'react-router-dom';
 import { MainContainer } from 'src/components';
 import NewVersionChecker from 'src/components/NewVersionChecker/NewVersionChecker';
 import { useBackend } from 'src/contexts/backend/backend';
@@ -7,7 +7,6 @@ import { useDevice } from 'src/contexts/device';
 import { PreviousPageProvider } from 'src/contexts/previousPage';
 import { AdviserColors } from 'src/features/adviser/Adviser/Adviser';
 import { useAdviser } from 'src/features/adviser/context';
-import useAdviserTexts from 'src/features/adviser/useAdviserTexts';
 import { cybernetRoutes } from 'src/features/cybernet/ui/routes';
 import { getPassport } from 'src/features/passport/passports.redux';
 import useSenseManager from 'src/features/sense/ui/useSenseManager';
@@ -65,18 +64,6 @@ function App() {
   //   }
   // }, [communityLoaded, community, dispatch]);
 
-  useAdviserTexts({
-    defaultText: useMemo(() => {
-      return (
-        <div>
-          There are network issues 😔, part of functionality is currently disabled
-          <br />
-          <Link to={routes.social.path}>check socials</Link> for more info
-        </div>
-      );
-      // 'indexer is in sync now, some data may be not fully available'
-    }, []),
-  });
 
   useEffect(() => {
     // tabs
