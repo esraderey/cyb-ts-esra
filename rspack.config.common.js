@@ -160,8 +160,8 @@ const config = {
       ...(process.env.IPFS_DEPLOY ? { publicPath: './' } : {}),
       inject: 'body',
       templateParameters: {
-        COMMIT_SHA: process.env.COMMIT_SHA || '',
-        BRANCH: process.env.BRANCH || '',
+        COMMIT_SHA: process.env.COMMIT_SHA || require('child_process').execSync('git rev-parse HEAD').toString().trim(),
+        BRANCH: process.env.BRANCH || require('child_process').execSync('git rev-parse --abbrev-ref HEAD').toString().trim(),
         NODE_ENV: process.env.NODE_ENV || 'development',
       },
     }),
