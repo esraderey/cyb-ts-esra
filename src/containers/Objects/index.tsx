@@ -76,7 +76,7 @@ function Objects() {
   useEffect(() => {
     getFirstItem();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [getFirstItem]);
+  }, []);
 
   const fetchMoreData = async () => {
     // a fake async api call like which sends
