@@ -83,6 +83,7 @@ export const parseArrayLikeToDetails = async (
       gateway: true,
       text: cid.toString(),
       cid,
+      type: content?.meta?.contentType,
     };
   }
 

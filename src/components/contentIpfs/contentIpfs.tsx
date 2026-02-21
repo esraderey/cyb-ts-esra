@@ -68,8 +68,14 @@ function ContentIpfs({ details, content, cid, search, skipCheck }: ContentTabPro
           {contentType === 'text' && (
             <TextMarkdown preview={search}>{details.content || cid}</TextMarkdown>
           )}
-          {contentType === 'image' && <Img content={details.content} />}
+          {contentType === 'image' && details.content && <Img content={details.content} />}
+          {contentType === 'image' && !details.content && (
+            <GatewayContent url={`${CYBER_GATEWAY}/ipfs/${cid}`} />
+          )}
           {contentType === 'pdf' && details.content && <Pdf content={details.content} />}
+          {contentType === 'pdf' && !details.content && (
+            <GatewayContent url={`${CYBER_GATEWAY}/ipfs/${cid}`} />
+          )}
           {contentType === 'link' && <LinkHttp url={details.content!} preview={search} />}
           {contentType === 'html' && <HtmlItem cid={content?.cid} />}
           {contentType === 'epub' && (
