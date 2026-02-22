@@ -102,8 +102,11 @@ impl TermGrid {
             self.newline();
         }
         if self.cursor_row < self.rows && self.cursor_col < self.cols {
+            // bevy_ascii_terminal only supports ASCII glyphs in its font map
+            // Replace non-printable-ASCII with space to avoid panic
+            let safe_c = if c.is_ascii_graphic() || c == ' ' { c } else { ' ' };
             self.cells[self.cursor_row][self.cursor_col] = Cell {
-                c,
+                c: safe_c,
                 fg: self.sgr.fg,
                 bg: self.sgr.bg,
             };
@@ -386,9 +389,15 @@ struct TerminalState {
 }
 
 fn setup_terminal(mut commands: Commands, mut state_res: ResMut<TerminalStateRes>) {
+    let cols = TERM_COLS;
+    let rows = TERM_ROWS;
+
     let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/zsh".to_string());
 
-    let mut pty = teletypewriter::create_pty(&shell, TERM_COLS as u16, TERM_ROWS as u16);
+    // Shell needs TERM to render prompt and handle input properly
+    unsafe { std::env::set_var("TERM", "xterm-256color"); }
+
+    let mut pty = teletypewriter::create_pty(&shell, cols as u16, rows as u16);
 
     let reader_fd = pty.reader().as_raw_fd();
     let writer_fd = pty.writer().as_raw_fd();
@@ -396,7 +405,14 @@ fn setup_terminal(mut commands: Commands, mut state_res: ResMut<TerminalStateRes
     let reader_file = unsafe { File::from_raw_fd(libc::dup(reader_fd)) };
     let writer_file = unsafe { File::from_raw_fd(libc::dup(writer_fd)) };
 
-    let grid = Arc::new(Mutex::new(TermGrid::new(TERM_COLS, TERM_ROWS)));
+    // teletypewriter sets fd to non-blocking — we need blocking for our reader thread
+    let dup_reader_fd = reader_file.as_raw_fd();
+    unsafe {
+        let flags = libc::fcntl(dup_reader_fd, libc::F_GETFL);
+        libc::fcntl(dup_reader_fd, libc::F_SETFL, flags & !libc::O_NONBLOCK);
+    }
+
+    let grid = Arc::new(Mutex::new(TermGrid::new(cols, rows)));
     let grid_clone = Arc::clone(&grid);
     let writer = Arc::new(Mutex::new(writer_file));
 
@@ -414,6 +430,10 @@ fn setup_terminal(mut commands: Commands, mut state_res: ResMut<TerminalStateRes
                         parser.advance(&mut performer, *byte);
                     }
                 }
+                Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                    std::thread::sleep(std::time::Duration::from_millis(10));
+                    continue;
+                }
                 Err(_) => break,
             }
         }
@@ -421,7 +441,7 @@ fn setup_terminal(mut commands: Commands, mut state_res: ResMut<TerminalStateRes
 
     // Spawn bevy_ascii_terminal
     commands.spawn((
-        Terminal::new([TERM_COLS as u32, TERM_ROWS as u32]),
+        Terminal::new([cols as u32, rows as u32]),
         TerminalMarker,
     ));
     commands.spawn((TerminalCamera::new(), TerminalMarker));
@@ -433,7 +453,7 @@ fn setup_terminal(mut commands: Commands, mut state_res: ResMut<TerminalStateRes
         _pty: pty,
     });
 
-    info!("Terminal world created ({}x{}) shell={}", TERM_COLS, TERM_ROWS, shell);
+    info!("Terminal world created ({}x{}) shell={}", cols, rows, shell);
 }
 
 #[derive(Resource, Default)]
@@ -450,10 +470,13 @@ fn sync_grid_to_terminal(
 
     let grid = state.grid.lock().unwrap();
 
-    for row in 0..grid.rows {
-        // bevy_ascii_terminal uses [x, y] with y=0 at bottom
-        let y = (grid.rows - 1 - row) as i32;
-        for col in 0..grid.cols {
+    let term_size = terminal.size();
+    let display_cols = (grid.cols as u32).min(term_size.x) as usize;
+    let display_rows = (grid.rows as u32).min(term_size.y) as usize;
+
+    for row in 0..display_rows {
+        let y = (display_rows - 1 - row) as i32;
+        for col in 0..display_cols {
             let cell = &grid.cells[row][col];
             let tile = terminal.tile_mut([col as i32, y]);
             tile.glyph = cell.c;
@@ -465,8 +488,8 @@ fn sync_grid_to_terminal(
     // Show cursor as inverse block
     let crow = grid.cursor_row;
     let ccol = grid.cursor_col;
-    if crow < grid.rows && ccol < grid.cols {
-        let y = (grid.rows - 1 - crow) as i32;
+    if crow < display_rows && ccol < display_cols {
+        let y = (display_rows - 1 - crow) as i32;
         let tile = terminal.tile_mut([ccol as i32, y]);
         let tmp = tile.fg_color;
         tile.fg_color = tile.bg_color;
@@ -485,8 +508,20 @@ fn forward_keyboard_input(
             continue;
         }
 
+        debug!("Terminal key: {:?}", event.logical_key);
+
         let bytes: Option<Vec<u8>> = match &event.logical_key {
-            Key::Character(c) => Some(c.as_str().as_bytes().to_vec()),
+            Key::Character(c) => {
+                let s = c.as_str();
+                // Handle Ctrl+C, Ctrl+D, etc
+                if s.len() == 1 {
+                    let ch = s.bytes().next().unwrap();
+                    // Characters below 0x20 are already control chars from Ctrl+key
+                    Some(vec![ch])
+                } else {
+                    Some(s.as_bytes().to_vec())
+                }
+            }
             Key::Enter => Some(b"\r".to_vec()),
             Key::Backspace => Some(b"\x7f".to_vec()),
             Key::Tab => Some(b"\t".to_vec()),
