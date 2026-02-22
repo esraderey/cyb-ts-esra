@@ -37,6 +37,9 @@ storybook-static
 # Deno
 deno.lock
 
+# Rust build artifacts
+cyb/target/
+
 # Claude Code
 .claude/*
 !.claude/plans/
