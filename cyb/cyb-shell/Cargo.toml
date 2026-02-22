@@ -6,7 +6,7 @@ edition = "2024"
 [dependencies]
 bevy = { workspace = true }
 global-hotkey = "0.7.0"
-bevy_egui = "0.39"
+bevy_ascii_terminal = "0.18"
 wry = "0.53"
 teletypewriter = "2.0.1"
 vte = "0.13"

@@ -3,7 +3,7 @@ mod shell;
 mod worlds;
 
 use bevy::prelude::*;
-use bevy_egui::EguiPlugin;
+use bevy_ascii_terminal::TerminalPlugins;
 use agent::AgentPlugin;
 use shell::hotkeys::HotkeysPlugin;
 use shell::tray::TrayPlugin;
@@ -23,7 +23,7 @@ fn main() {
             }),
             ..default()
         }))
-        .add_plugins(EguiPlugin::default())
+        .add_plugins(TerminalPlugins)
         .add_plugins(WorldsPlugin)
         .add_plugins(HotkeysPlugin)
         .add_plugins(GameWorldPlugin)
