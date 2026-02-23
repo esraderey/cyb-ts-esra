@@ -255,6 +255,41 @@ fn setup_terminal(world: &mut World) {
     let cols = (win_w as f32 / cell_w).floor().max(2.0) as usize;
     let rows = (win_h as f32 / cell_h).floor().max(1.0) as usize;
 
+    // Resolve bundled nushell shell
+    let exe_dir = std::env::current_exe()
+        .ok()
+        .and_then(|p| p.parent().map(|p| p.to_path_buf()));
+
+    let mut shell_option: Option<tty::Shell> = None;
+    let mut extra_env = std::collections::HashMap::new();
+
+    if let Some(ref dir) = exe_dir {
+        let nu_path = dir.join("nu");
+        if nu_path.exists() {
+            shell_option = Some(tty::Shell::new(
+                nu_path.to_string_lossy().to_string(),
+                vec!["--login".to_string()],
+            ));
+            info!("Using bundled nushell: {:?}", nu_path);
+
+            // Point nushell to bundled config (Contents/Resources/nushell/)
+            let resources = dir.join("../Resources");
+            if resources.join("nushell").exists() {
+                extra_env.insert(
+                    "XDG_CONFIG_HOME".to_string(),
+                    resources.to_string_lossy().to_string(),
+                );
+            }
+        }
+    }
+
+    // Block legacy shell configs
+    unsafe {
+        std::env::remove_var("ZDOTDIR");
+        std::env::remove_var("BASH_ENV");
+        std::env::remove_var("ENV");
+    }
+
     // Setup PTY
     tty::setup_env();
 
@@ -265,7 +300,16 @@ fn setup_terminal(world: &mut World) {
         cell_height: cell_h as u16,
     };
 
-    let opts = tty::Options::default();
+    let home_dir = std::env::var("HOME")
+        .map(std::path::PathBuf::from)
+        .ok();
+
+    let opts = tty::Options {
+        shell: shell_option,
+        working_directory: home_dir,
+        env: extra_env,
+        ..Default::default()
+    };
     let pty = match tty::new(&opts, window_size, 0) {
         Ok(pty) => pty,
         Err(e) => {
