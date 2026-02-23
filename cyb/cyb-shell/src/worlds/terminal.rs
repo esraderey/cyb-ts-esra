@@ -1,19 +1,33 @@
 use std::fs::File;
 use std::io::{Read, Write};
 use std::os::unix::io::{AsRawFd, FromRawFd};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::thread;
 
-use bevy::color::LinearRgba;
+use alacritty_terminal::event::{Event, EventListener, WindowSize};
+use alacritty_terminal::grid::Dimensions;
+use alacritty_terminal::sync::FairMutex;
+use alacritty_terminal::term::cell::Flags;
+use alacritty_terminal::term::Config;
+use alacritty_terminal::tty;
+use alacritty_terminal::vte::ansi::{Color, CursorShape, NamedColor, Processor, Rgb};
+use alacritty_terminal::Term;
+
 use bevy::input::keyboard::{Key, KeyboardInput};
 use bevy::prelude::*;
-use bevy_ascii_terminal::{color, Terminal, TerminalCamera};
-use teletypewriter::ProcessReadWrite;
+use bevy::window::PrimaryWindow;
+use bevy::winit::WINIT_WINDOWS;
+
+use sugarloaf::{
+    FragmentStyle, FragmentStyleDecoration, Object, RichText, Sugarloaf, SugarloafRenderer,
+    SugarloafWindow, SugarloafWindowSize, UnderlineInfo, UnderlineShape,
+};
+use sugarloaf::font::FontLibrary;
+use sugarloaf::layout::RootStyle;
 
 use super::WorldState;
 
-const TERM_COLS: usize = 120;
-const TERM_ROWS: usize = 40;
+const FONT_SIZE: f32 = 16.0;
 
 pub struct TerminalWorldPlugin;
 
@@ -27,7 +41,7 @@ impl Plugin for TerminalWorldPlugin {
             .add_systems(OnExit(WorldState::Terminal), destroy_terminal)
             .add_systems(
                 Update,
-                sync_grid_to_terminal.run_if(in_state(WorldState::Terminal)),
+                render_terminal.run_if(in_state(WorldState::Terminal)),
             )
             .add_systems(
                 Update,
@@ -36,399 +50,262 @@ impl Plugin for TerminalWorldPlugin {
     }
 }
 
-// --- Terminal cell with ANSI colors ---
+// --- ANSI 16-color theme ---
 
-#[derive(Clone, Copy)]
-struct Cell {
-    c: char,
-    fg: LinearRgba,
-    bg: LinearRgba,
+fn default_ansi_rgb(color: NamedColor) -> Rgb {
+    match color {
+        NamedColor::Black => Rgb { r: 0, g: 0, b: 0 },
+        NamedColor::Red => Rgb { r: 204, g: 0, b: 0 },
+        NamedColor::Green => Rgb { r: 0, g: 204, b: 0 },
+        NamedColor::Yellow => Rgb { r: 204, g: 204, b: 0 },
+        NamedColor::Blue => Rgb { r: 0, g: 0, b: 204 },
+        NamedColor::Magenta => Rgb { r: 204, g: 0, b: 204 },
+        NamedColor::Cyan => Rgb { r: 0, g: 204, b: 204 },
+        NamedColor::White => Rgb { r: 191, g: 191, b: 191 },
+        NamedColor::BrightBlack => Rgb { r: 102, g: 102, b: 102 },
+        NamedColor::BrightRed => Rgb { r: 255, g: 85, b: 85 },
+        NamedColor::BrightGreen => Rgb { r: 85, g: 255, b: 85 },
+        NamedColor::BrightYellow => Rgb { r: 255, g: 255, b: 85 },
+        NamedColor::BrightBlue => Rgb { r: 85, g: 85, b: 255 },
+        NamedColor::BrightMagenta => Rgb { r: 255, g: 85, b: 255 },
+        NamedColor::BrightCyan => Rgb { r: 85, g: 255, b: 255 },
+        NamedColor::BrightWhite => Rgb { r: 255, g: 255, b: 255 },
+        NamedColor::Foreground | NamedColor::BrightForeground => Rgb { r: 230, g: 230, b: 230 },
+        NamedColor::Background => Rgb { r: 18, g: 18, b: 18 },
+        NamedColor::Cursor => Rgb { r: 230, g: 230, b: 230 },
+        NamedColor::DimBlack => Rgb { r: 0, g: 0, b: 0 },
+        NamedColor::DimRed => Rgb { r: 128, g: 0, b: 0 },
+        NamedColor::DimGreen => Rgb { r: 0, g: 128, b: 0 },
+        NamedColor::DimYellow => Rgb { r: 128, g: 128, b: 0 },
+        NamedColor::DimBlue => Rgb { r: 0, g: 0, b: 128 },
+        NamedColor::DimMagenta => Rgb { r: 128, g: 0, b: 128 },
+        NamedColor::DimCyan => Rgb { r: 0, g: 128, b: 128 },
+        NamedColor::DimWhite => Rgb { r: 128, g: 128, b: 128 },
+        NamedColor::DimForeground => Rgb { r: 128, g: 128, b: 128 },
+    }
 }
 
-impl Default for Cell {
-    fn default() -> Self {
-        Self {
-            c: ' ',
-            fg: color::WHITE,
-            bg: color::BLACK,
+fn resolve_color(color: Color, colors: &alacritty_terminal::term::color::Colors) -> Rgb {
+    match color {
+        Color::Spec(rgb) => rgb,
+        Color::Named(named) => colors[named].unwrap_or_else(|| default_ansi_rgb(named)),
+        Color::Indexed(idx) => {
+            if let Some(rgb) = colors[idx as usize] {
+                return rgb;
+            }
+            if idx < 16 {
+                let named = match idx {
+                    0 => NamedColor::Black,
+                    1 => NamedColor::Red,
+                    2 => NamedColor::Green,
+                    3 => NamedColor::Yellow,
+                    4 => NamedColor::Blue,
+                    5 => NamedColor::Magenta,
+                    6 => NamedColor::Cyan,
+                    7 => NamedColor::White,
+                    8 => NamedColor::BrightBlack,
+                    9 => NamedColor::BrightRed,
+                    10 => NamedColor::BrightGreen,
+                    11 => NamedColor::BrightYellow,
+                    12 => NamedColor::BrightBlue,
+                    13 => NamedColor::BrightMagenta,
+                    14 => NamedColor::BrightCyan,
+                    15 => NamedColor::BrightWhite,
+                    _ => unreachable!(),
+                };
+                default_ansi_rgb(named)
+            } else if idx < 232 {
+                let i = idx - 16;
+                let r = (i / 36) % 6;
+                let g = (i / 6) % 6;
+                let b = i % 6;
+                let to_byte = |v: u8| -> u8 { if v == 0 { 0 } else { 55 + 40 * v } };
+                Rgb { r: to_byte(r), g: to_byte(g), b: to_byte(b) }
+            } else {
+                let level = 8 + 10 * (idx - 232);
+                Rgb { r: level, g: level, b: level }
+            }
         }
     }
 }
 
-// --- SGR state for tracking current text attributes ---
+fn rgb_to_f32(rgb: Rgb) -> [f32; 4] {
+    [rgb.r as f32 / 255.0, rgb.g as f32 / 255.0, rgb.b as f32 / 255.0, 1.0]
+}
+
+// --- Event listener for alacritty_terminal ---
 
 #[derive(Clone)]
-struct SgrState {
-    fg: LinearRgba,
-    bg: LinearRgba,
-    bold: bool,
-}
+struct BevyEventProxy;
 
-impl Default for SgrState {
-    fn default() -> Self {
-        Self {
-            fg: color::WHITE,
-            bg: color::BLACK,
-            bold: false,
+impl EventListener for BevyEventProxy {
+    fn send_event(&self, event: Event) {
+        match event {
+            Event::Title(title) => debug!("Terminal title: {}", title),
+            Event::Bell => debug!("Terminal bell"),
+            _ => {}
         }
     }
 }
 
-// --- Terminal grid shared between reader thread and Bevy ---
+// --- Dimensions impl ---
 
-struct TermGrid {
-    cells: Vec<Vec<Cell>>,
-    cursor_row: usize,
-    cursor_col: usize,
+struct TermDimensions {
     cols: usize,
-    rows: usize,
-    sgr: SgrState,
+    lines: usize,
 }
 
-impl TermGrid {
-    fn new(cols: usize, rows: usize) -> Self {
-        Self {
-            cells: vec![vec![Cell::default(); cols]; rows],
-            cursor_row: 0,
-            cursor_col: 0,
-            cols,
-            rows,
-            sgr: SgrState::default(),
-        }
-    }
-
-    fn put_char(&mut self, c: char) {
-        if self.cursor_col >= self.cols {
-            self.newline();
-        }
-        if self.cursor_row < self.rows && self.cursor_col < self.cols {
-            // bevy_ascii_terminal only supports ASCII glyphs in its font map
-            // Replace non-printable-ASCII with space to avoid panic
-            let safe_c = if c.is_ascii_graphic() || c == ' ' { c } else { ' ' };
-            self.cells[self.cursor_row][self.cursor_col] = Cell {
-                c: safe_c,
-                fg: self.sgr.fg,
-                bg: self.sgr.bg,
-            };
-            self.cursor_col += 1;
-        }
-    }
-
-    fn newline(&mut self) {
-        self.cursor_col = 0;
-        self.cursor_row += 1;
-        if self.cursor_row >= self.rows {
-            self.cells.remove(0);
-            self.cells.push(vec![Cell::default(); self.cols]);
-            self.cursor_row = self.rows - 1;
-        }
-    }
-
-    fn carriage_return(&mut self) {
-        self.cursor_col = 0;
-    }
-
-    fn backspace(&mut self) {
-        if self.cursor_col > 0 {
-            self.cursor_col -= 1;
-        }
-    }
-
-    fn clear_line_from_cursor(&mut self) {
-        for col in self.cursor_col..self.cols {
-            self.cells[self.cursor_row][col] = Cell::default();
-        }
-    }
-
-    fn clear_screen(&mut self) {
-        for row in &mut self.cells {
-            for cell in row {
-                *cell = Cell::default();
-            }
-        }
-        self.cursor_row = 0;
-        self.cursor_col = 0;
-    }
+impl Dimensions for TermDimensions {
+    fn total_lines(&self) -> usize { self.lines }
+    fn screen_lines(&self) -> usize { self.lines }
+    fn columns(&self) -> usize { self.cols }
 }
 
-// --- ANSI 256-color palette ---
-
-fn ansi_standard_color(idx: u8, bold: bool) -> LinearRgba {
-    match idx {
-        0 => if bold { LinearRgba::new(0.33, 0.33, 0.33, 1.0) } else { color::BLACK },
-        1 => if bold { LinearRgba::new(1.0, 0.33, 0.33, 1.0) } else { LinearRgba::new(0.8, 0.0, 0.0, 1.0) },
-        2 => if bold { LinearRgba::new(0.33, 1.0, 0.33, 1.0) } else { LinearRgba::new(0.0, 0.8, 0.0, 1.0) },
-        3 => if bold { color::YELLOW } else { LinearRgba::new(0.8, 0.8, 0.0, 1.0) },
-        4 => if bold { LinearRgba::new(0.33, 0.33, 1.0, 1.0) } else { LinearRgba::new(0.0, 0.0, 0.8, 1.0) },
-        5 => if bold { LinearRgba::new(1.0, 0.33, 1.0, 1.0) } else { LinearRgba::new(0.8, 0.0, 0.8, 1.0) },
-        6 => if bold { LinearRgba::new(0.33, 1.0, 1.0, 1.0) } else { LinearRgba::new(0.0, 0.8, 0.8, 1.0) },
-        7 => if bold { color::WHITE } else { LinearRgba::new(0.75, 0.75, 0.75, 1.0) },
-        _ => color::WHITE,
-    }
-}
-
-fn ansi_256_color(idx: u8) -> LinearRgba {
-    match idx {
-        0..=7 => ansi_standard_color(idx, false),
-        8..=15 => ansi_standard_color(idx - 8, true),
-        16..=231 => {
-            // 6x6x6 color cube
-            let idx = idx - 16;
-            let r = (idx / 36) % 6;
-            let g = (idx / 6) % 6;
-            let b = idx % 6;
-            let to_f = |v: u8| if v == 0 { 0.0 } else { (55.0 + 40.0 * v as f32) / 255.0 };
-            LinearRgba::new(to_f(r), to_f(g), to_f(b), 1.0)
-        }
-        232..=255 => {
-            // Grayscale ramp
-            let v = (8 + 10 * (idx - 232) as u32) as f32 / 255.0;
-            LinearRgba::new(v, v, v, 1.0)
-        }
-    }
-}
-
-// --- VTE performer ---
-
-struct GridPerformer<'a> {
-    grid: &'a mut TermGrid,
-}
-
-impl vte::Perform for GridPerformer<'_> {
-    fn print(&mut self, c: char) {
-        self.grid.put_char(c);
-    }
-
-    fn execute(&mut self, byte: u8) {
-        match byte {
-            b'\n' => self.grid.newline(),
-            b'\r' => self.grid.carriage_return(),
-            b'\x08' => self.grid.backspace(),
-            b'\t' => {
-                let next_tab = (self.grid.cursor_col / 8 + 1) * 8;
-                self.grid.cursor_col = next_tab.min(self.grid.cols - 1);
-            }
-            _ => {}
-        }
-    }
-
-    fn csi_dispatch(
-        &mut self,
-        params: &vte::Params,
-        _intermediates: &[u8],
-        _ignore: bool,
-        action: char,
-    ) {
-        let first = params.iter().next().and_then(|p| p.first().copied()).unwrap_or(0);
-        match action {
-            'A' => {
-                let n = if first == 0 { 1 } else { first as usize };
-                self.grid.cursor_row = self.grid.cursor_row.saturating_sub(n);
-            }
-            'B' => {
-                let n = if first == 0 { 1 } else { first as usize };
-                self.grid.cursor_row = (self.grid.cursor_row + n).min(self.grid.rows - 1);
-            }
-            'C' => {
-                let n = if first == 0 { 1 } else { first as usize };
-                self.grid.cursor_col = (self.grid.cursor_col + n).min(self.grid.cols - 1);
-            }
-            'D' => {
-                let n = if first == 0 { 1 } else { first as usize };
-                self.grid.cursor_col = self.grid.cursor_col.saturating_sub(n);
-            }
-            'H' | 'f' => {
-                let mut iter = params.iter();
-                let row = iter.next().and_then(|p| p.first().copied()).unwrap_or(1) as usize;
-                let col = iter.next().and_then(|p| p.first().copied()).unwrap_or(1) as usize;
-                self.grid.cursor_row = (row.saturating_sub(1)).min(self.grid.rows - 1);
-                self.grid.cursor_col = (col.saturating_sub(1)).min(self.grid.cols - 1);
-            }
-            'J' => {
-                match first {
-                    2 | 3 => self.grid.clear_screen(),
-                    0 => {
-                        self.grid.clear_line_from_cursor();
-                        for row in (self.grid.cursor_row + 1)..self.grid.rows {
-                            for col in 0..self.grid.cols {
-                                self.grid.cells[row][col] = Cell::default();
-                            }
-                        }
-                    }
-                    _ => {}
-                }
-            }
-            'K' => {
-                match first {
-                    0 => self.grid.clear_line_from_cursor(),
-                    2 => {
-                        let row = self.grid.cursor_row;
-                        for col in 0..self.grid.cols {
-                            self.grid.cells[row][col] = Cell::default();
-                        }
-                    }
-                    _ => {}
-                }
-            }
-            'm' => {
-                // SGR — Set Graphic Rendition
-                self.process_sgr(params);
-            }
-            _ => {}
-        }
-    }
-
-    fn hook(&mut self, _params: &vte::Params, _intermediates: &[u8], _ignore: bool, _action: char) {}
-    fn put(&mut self, _byte: u8) {}
-    fn unhook(&mut self) {}
-    fn osc_dispatch(&mut self, _params: &[&[u8]], _bell_terminated: bool) {}
-    fn esc_dispatch(&mut self, _intermediates: &[u8], _ignore: bool, _byte: u8) {}
-}
-
-impl GridPerformer<'_> {
-    fn process_sgr(&mut self, params: &vte::Params) {
-        let mut iter = params.iter();
-
-        // Handle empty params (reset)
-        let mut had_params = false;
-
-        while let Some(param) = iter.next() {
-            had_params = true;
-            let code = param.first().copied().unwrap_or(0);
-
-            match code {
-                0 => {
-                    self.grid.sgr = SgrState::default();
-                }
-                1 => {
-                    self.grid.sgr.bold = true;
-                }
-                22 => {
-                    self.grid.sgr.bold = false;
-                }
-                // Standard foreground colors
-                30..=37 => {
-                    self.grid.sgr.fg = ansi_standard_color((code - 30) as u8, self.grid.sgr.bold);
-                }
-                // Standard background colors
-                40..=47 => {
-                    self.grid.sgr.bg = ansi_standard_color((code - 40) as u8, false);
-                }
-                // Default foreground
-                39 => {
-                    self.grid.sgr.fg = color::WHITE;
-                }
-                // Default background
-                49 => {
-                    self.grid.sgr.bg = color::BLACK;
-                }
-                // Bright foreground colors
-                90..=97 => {
-                    self.grid.sgr.fg = ansi_standard_color((code - 90) as u8, true);
-                }
-                // Bright background colors
-                100..=107 => {
-                    self.grid.sgr.bg = ansi_standard_color((code - 100) as u8, true);
-                }
-                // Extended foreground: 38;5;N (256-color) or 38;2;R;G;B (truecolor)
-                38 => {
-                    if let Some(sub) = iter.next() {
-                        match sub.first().copied().unwrap_or(0) {
-                            5 => {
-                                if let Some(idx) = iter.next() {
-                                    self.grid.sgr.fg = ansi_256_color(idx.first().copied().unwrap_or(0) as u8);
-                                }
-                            }
-                            2 => {
-                                let r = iter.next().and_then(|p| p.first().copied()).unwrap_or(0) as f32 / 255.0;
-                                let g = iter.next().and_then(|p| p.first().copied()).unwrap_or(0) as f32 / 255.0;
-                                let b = iter.next().and_then(|p| p.first().copied()).unwrap_or(0) as f32 / 255.0;
-                                self.grid.sgr.fg = LinearRgba::new(r, g, b, 1.0);
-                            }
-                            _ => {}
-                        }
-                    }
-                }
-                // Extended background: 48;5;N or 48;2;R;G;B
-                48 => {
-                    if let Some(sub) = iter.next() {
-                        match sub.first().copied().unwrap_or(0) {
-                            5 => {
-                                if let Some(idx) = iter.next() {
-                                    self.grid.sgr.bg = ansi_256_color(idx.first().copied().unwrap_or(0) as u8);
-                                }
-                            }
-                            2 => {
-                                let r = iter.next().and_then(|p| p.first().copied()).unwrap_or(0) as f32 / 255.0;
-                                let g = iter.next().and_then(|p| p.first().copied()).unwrap_or(0) as f32 / 255.0;
-                                let b = iter.next().and_then(|p| p.first().copied()).unwrap_or(0) as f32 / 255.0;
-                                self.grid.sgr.bg = LinearRgba::new(r, g, b, 1.0);
-                            }
-                            _ => {}
-                        }
-                    }
-                }
-                _ => {}
-            }
-        }
-
-        if !had_params {
-            // CSI m with no params = reset
-            self.grid.sgr = SgrState::default();
-        }
-    }
-}
-
-// --- Bevy resources & systems ---
+// --- Bevy resources ---
 
 struct TerminalState {
-    grid: Arc<Mutex<TermGrid>>,
-    writer: Arc<Mutex<File>>,
+    term: Arc<FairMutex<Term<BevyEventProxy>>>,
+    pty_writer: Arc<std::sync::Mutex<File>>,
+    cols: usize,
+    rows: usize,
+    rich_text_id: usize,
     _reader_handle: thread::JoinHandle<()>,
-    _pty: teletypewriter::Pty,
+    _pty: tty::Pty,
 }
 
-fn setup_terminal(mut commands: Commands, mut state_res: ResMut<TerminalStateRes>) {
-    let cols = TERM_COLS;
-    let rows = TERM_ROWS;
+#[derive(Resource, Default)]
+struct TerminalStateRes {
+    state: Option<TerminalState>,
+}
 
-    let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/zsh".to_string());
+// Sugarloaf must be NonSend (contains wgpu resources, not Send)
+struct SugarloafState {
+    sugarloaf: Sugarloaf<'static>,
+}
 
-    // Shell needs TERM to render prompt and handle input properly
-    unsafe { std::env::set_var("TERM", "xterm-256color"); }
+// --- Setup ---
 
-    let mut pty = teletypewriter::create_pty(&shell, cols as u16, rows as u16);
+fn setup_terminal(world: &mut World) {
+    let primary_entity = world
+        .query_filtered::<Entity, With<PrimaryWindow>>()
+        .single(world);
+    let Ok(entity) = primary_entity else { return };
 
-    let reader_fd = pty.reader().as_raw_fd();
-    let writer_fd = pty.writer().as_raw_fd();
+    // Get window dimensions
+    let (win_w, win_h, scale_factor) = {
+        let window = world.get::<Window>(entity).unwrap();
+        (window.physical_width(), window.physical_height(), window.scale_factor())
+    };
 
-    let reader_file = unsafe { File::from_raw_fd(libc::dup(reader_fd)) };
-    let writer_file = unsafe { File::from_raw_fd(libc::dup(writer_fd)) };
+    // Get raw window handle from winit and create sugarloaf
+    let sugar_result = WINIT_WINDOWS.with(|ww| {
+        let ww = ww.borrow();
+        let Some(window_wrapper) = ww.get_window(entity) else {
+            return None;
+        };
 
-    // teletypewriter sets fd to non-blocking — we need blocking for our reader thread
-    let dup_reader_fd = reader_file.as_raw_fd();
+        use sugarloaf::wgpu::rwh::{HasDisplayHandle, HasWindowHandle};
+        let raw_wh = window_wrapper.window_handle().ok()?.as_raw();
+        let raw_dh = window_wrapper.display_handle().ok()?.as_raw();
+
+        let sugar_window = SugarloafWindow {
+            handle: raw_wh,
+            display: raw_dh,
+            size: SugarloafWindowSize {
+                width: win_w as f32,
+                height: win_h as f32,
+            },
+            scale: scale_factor,
+        };
+
+        let renderer = SugarloafRenderer::default();
+        let (font_library, _font_errors) = FontLibrary::new(Default::default());
+        let layout = RootStyle::new(scale_factor, FONT_SIZE, 1.0);
+
+        match Sugarloaf::new(sugar_window, renderer, &font_library, layout) {
+            Ok(mut sugarloaf) => {
+                let rich_text_id = sugarloaf.create_rich_text();
+
+                sugarloaf.set_background_color(Some(sugarloaf::wgpu::Color {
+                    r: 0.07,
+                    g: 0.07,
+                    b: 0.07,
+                    a: 1.0,
+                }));
+
+                Some((sugarloaf, rich_text_id))
+            }
+            Err(e) => {
+                warn!("Failed to create Sugarloaf: {:?}", e);
+                None
+            }
+        }
+    });
+
+    let Some((mut sugarloaf, rich_text_id)) = sugar_result else {
+        warn!("Failed to initialize sugarloaf for terminal");
+        return;
+    };
+
+    // Calculate terminal grid size from sugarloaf font dimensions
+    let dims = sugarloaf.get_rich_text_dimensions(&rich_text_id);
+    let cell_w = if dims.width > 0.0 { dims.width } else { 9.0 };
+    let cell_h = if dims.height > 0.0 { dims.height } else { 18.0 };
+
+    let cols = (win_w as f32 / cell_w).floor().max(2.0) as usize;
+    let rows = (win_h as f32 / cell_h).floor().max(1.0) as usize;
+
+    // Setup PTY
+    tty::setup_env();
+
+    let window_size = WindowSize {
+        num_lines: rows as u16,
+        num_cols: cols as u16,
+        cell_width: cell_w as u16,
+        cell_height: cell_h as u16,
+    };
+
+    let opts = tty::Options::default();
+    let pty = match tty::new(&opts, window_size, 0) {
+        Ok(pty) => pty,
+        Err(e) => {
+            warn!("Failed to create PTY: {}", e);
+            return;
+        }
+    };
+
+    // Create alacritty terminal grid
+    let config = Config::default();
+    let term_dims = TermDimensions { cols, lines: rows };
+    let term = Arc::new(FairMutex::new(Term::new(config, &term_dims, BevyEventProxy)));
+
+    // Dup PTY fd for reader/writer
+    let pty_fd = pty.file().as_raw_fd();
+    let reader_fd = unsafe { libc::dup(pty_fd) };
+    let writer_fd = unsafe { libc::dup(pty_fd) };
+
+    // Make reader blocking
     unsafe {
-        let flags = libc::fcntl(dup_reader_fd, libc::F_GETFL);
-        libc::fcntl(dup_reader_fd, libc::F_SETFL, flags & !libc::O_NONBLOCK);
+        let flags = libc::fcntl(reader_fd, libc::F_GETFL);
+        libc::fcntl(reader_fd, libc::F_SETFL, flags & !libc::O_NONBLOCK);
     }
 
-    let grid = Arc::new(Mutex::new(TermGrid::new(cols, rows)));
-    let grid_clone = Arc::clone(&grid);
-    let writer = Arc::new(Mutex::new(writer_file));
+    let reader_file = unsafe { File::from_raw_fd(reader_fd) };
+    let writer_file = unsafe { File::from_raw_fd(writer_fd) };
+    let pty_writer = Arc::new(std::sync::Mutex::new(writer_file));
 
+    // Spawn PTY reader thread
+    let term_clone = Arc::clone(&term);
     let reader_handle = thread::spawn(move || {
         let mut reader = reader_file;
-        let mut parser = vte::Parser::new();
+        let mut parser: Processor = Processor::new();
         let mut buf = [0u8; 4096];
         loop {
             match reader.read(&mut buf) {
                 Ok(0) => break,
                 Ok(n) => {
-                    let mut grid = grid_clone.lock().unwrap();
-                    let mut performer = GridPerformer { grid: &mut grid };
-                    for byte in &buf[..n] {
-                        parser.advance(&mut performer, *byte);
-                    }
+                    let mut term = term_clone.lock();
+                    parser.advance(&mut *term, &buf[..n]);
                 }
                 Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
                     std::thread::sleep(std::time::Duration::from_millis(10));
@@ -437,65 +314,245 @@ fn setup_terminal(mut commands: Commands, mut state_res: ResMut<TerminalStateRes
                 Err(_) => break,
             }
         }
+        info!("Terminal reader thread exited");
     });
 
-    // Spawn bevy_ascii_terminal
-    commands.spawn((
-        Terminal::new([cols as u32, rows as u32]),
-        TerminalMarker,
-    ));
-    commands.spawn((TerminalCamera::new(), TerminalMarker));
+    // No Bevy camera/sprite — sugarloaf renders directly to the window surface.
+    // Tag a marker entity so we can clean up on exit.
+    world.spawn(TerminalMarker);
 
-    state_res.state = Some(TerminalState {
-        grid,
-        writer,
+    // Store state
+    world.resource_mut::<TerminalStateRes>().state = Some(TerminalState {
+        term,
+        pty_writer,
+        cols,
+        rows,
+        rich_text_id,
         _reader_handle: reader_handle,
         _pty: pty,
     });
 
-    info!("Terminal world created ({}x{}) shell={}", cols, rows, shell);
+    world.insert_non_send_resource(SugarloafState { sugarloaf });
+
+    info!(
+        "Terminal created ({}x{}) cell={:.0}x{:.0} (sugarloaf direct surface)",
+        cols, rows, cell_w, cell_h
+    );
 }
 
-#[derive(Resource, Default)]
-struct TerminalStateRes {
-    state: Option<TerminalState>,
-}
+// --- Render terminal directly to window surface via sugarloaf ---
 
-fn sync_grid_to_terminal(
+fn render_terminal(
     state_res: Res<TerminalStateRes>,
-    mut term_query: Query<&mut Terminal, With<TerminalMarker>>,
+    sugar_state: Option<NonSendMut<SugarloafState>>,
 ) {
     let Some(ref state) = state_res.state else { return };
-    let Ok(mut terminal) = term_query.single_mut() else { return };
+    let Some(mut sugar_state) = sugar_state else { return };
 
-    let grid = state.grid.lock().unwrap();
+    let sugarloaf = &mut sugar_state.sugarloaf;
+    let rt_id = state.rich_text_id;
 
-    let term_size = terminal.size();
-    let display_cols = (grid.cols as u32).min(term_size.x) as usize;
-    let display_rows = (grid.rows as u32).min(term_size.y) as usize;
+    // Cursor info extracted from term lock scope
+    let mut cursor_col: usize = 0;
+    let mut cursor_row: i32 = -1;
+    let mut cursor_shape = CursorShape::Block;
 
-    for row in 0..display_rows {
-        let y = (display_rows - 1 - row) as i32;
-        for col in 0..display_cols {
-            let cell = &grid.cells[row][col];
-            let tile = terminal.tile_mut([col as i32, y]);
-            tile.glyph = cell.c;
-            tile.fg_color = cell.fg;
-            tile.bg_color = cell.bg;
+    // Scope the term lock — drop before GPU work
+    {
+        let term = state.term.lock();
+        let content = term.renderable_content();
+
+        // Clear previous content
+        sugarloaf.content().sel(rt_id).clear();
+
+        // Build content from alacritty terminal grid
+        let mut current_line: i32 = -1;
+        for indexed in content.display_iter {
+            let col = indexed.point.column.0;
+            let row = indexed.point.line.0;
+
+            if row < 0 || col >= state.cols || row as usize >= state.rows {
+                continue;
+            }
+
+            if row != current_line {
+                sugarloaf.content().sel(rt_id).new_line();
+                current_line = row;
+            }
+
+            let cell = &*indexed;
+            let mut fg_color = cell.fg;
+            let mut bg_color = cell.bg;
+
+            if cell.flags.contains(Flags::INVERSE) {
+                std::mem::swap(&mut fg_color, &mut bg_color);
+            }
+
+            let fg = resolve_color(fg_color, content.colors);
+            let bg = resolve_color(bg_color, content.colors);
+
+            // Bold → bright color mapping
+            let fg = if cell.flags.contains(Flags::BOLD) {
+                match fg_color {
+                    Color::Named(NamedColor::Black) => default_ansi_rgb(NamedColor::BrightBlack),
+                    Color::Named(NamedColor::Red) => default_ansi_rgb(NamedColor::BrightRed),
+                    Color::Named(NamedColor::Green) => default_ansi_rgb(NamedColor::BrightGreen),
+                    Color::Named(NamedColor::Yellow) => default_ansi_rgb(NamedColor::BrightYellow),
+                    Color::Named(NamedColor::Blue) => default_ansi_rgb(NamedColor::BrightBlue),
+                    Color::Named(NamedColor::Magenta) => default_ansi_rgb(NamedColor::BrightMagenta),
+                    Color::Named(NamedColor::Cyan) => default_ansi_rgb(NamedColor::BrightCyan),
+                    Color::Named(NamedColor::White) => default_ansi_rgb(NamedColor::BrightWhite),
+                    _ => fg,
+                }
+            } else {
+                fg
+            };
+
+            let mut style = FragmentStyle {
+                color: rgb_to_f32(fg),
+                background_color: Some(rgb_to_f32(bg)),
+                ..Default::default()
+            };
+
+            // Bold
+            if cell.flags.contains(Flags::BOLD) {
+                style.font_attrs = sugarloaf::font_introspector::Attributes::new(
+                    sugarloaf::Stretch::NORMAL,
+                    sugarloaf::Weight(700),
+                    sugarloaf::Style::Normal,
+                );
+            }
+
+            // Italic
+            if cell.flags.contains(Flags::ITALIC) {
+                style.font_attrs = sugarloaf::font_introspector::Attributes::new(
+                    sugarloaf::Stretch::NORMAL,
+                    if cell.flags.contains(Flags::BOLD) {
+                        sugarloaf::Weight(700)
+                    } else {
+                        sugarloaf::Weight(400)
+                    },
+                    sugarloaf::Style::Italic,
+                );
+            }
+
+            // Underline
+            if cell.flags.contains(Flags::UNDERLINE) {
+                style.decoration = Some(FragmentStyleDecoration::Underline(UnderlineInfo {
+                    is_doubled: false,
+                    shape: UnderlineShape::Regular,
+                }));
+            }
+
+            // Strikethrough
+            if cell.flags.contains(Flags::STRIKEOUT) {
+                style.decoration = Some(FragmentStyleDecoration::Strikethrough);
+            }
+
+            // Drawable chars (box drawing, powerline, etc.)
+            let ch = cell.c;
+            if let Some(drawable) = sugarloaf::drawable_character(ch) {
+                style.drawable_char = Some(drawable);
+            }
+
+            let text_owned;
+            let text_str = if ch == '\0' || ch == ' ' {
+                " "
+            } else {
+                text_owned = ch.to_string();
+                text_owned.as_str()
+            };
+
+            sugarloaf.content().sel(rt_id).add_text(text_str, style);
         }
+
+        // Build the text layout
+        sugarloaf.content().build();
+
+        // Extract cursor info
+        cursor_col = content.cursor.point.column.0;
+        cursor_row = content.cursor.point.line.0;
+        cursor_shape = content.cursor.shape;
+    } // term lock dropped here
+
+    // Handle cursor as quad overlay
+    if cursor_row >= 0 && (cursor_row as usize) < state.rows && cursor_col < state.cols {
+        let dims = sugarloaf.get_rich_text_dimensions(&rt_id);
+        let cell_w = if dims.width > 0.0 { dims.width } else { 9.0 };
+        let cell_h = if dims.height > 0.0 { dims.height } else { 18.0 };
+
+        let cursor_color = [0.9, 0.9, 0.9, 0.7];
+        let cx = cursor_col as f32 * cell_w;
+        let cy = cursor_row as f32 * cell_h;
+
+        let cursor_quad = match cursor_shape {
+            CursorShape::Block => sugarloaf::Quad {
+                position: [cx, cy],
+                size: [cell_w, cell_h],
+                color: cursor_color,
+                border_color: [0.0; 4],
+                border_radius: [0.0; 4],
+                border_width: 0.0,
+                shadow_color: [0.0; 4],
+                shadow_offset: [0.0; 2],
+                shadow_blur_radius: 0.0,
+            },
+            CursorShape::Beam => sugarloaf::Quad {
+                position: [cx, cy],
+                size: [2.0, cell_h],
+                color: cursor_color,
+                border_color: [0.0; 4],
+                border_radius: [0.0; 4],
+                border_width: 0.0,
+                shadow_color: [0.0; 4],
+                shadow_offset: [0.0; 2],
+                shadow_blur_radius: 0.0,
+            },
+            CursorShape::Underline => sugarloaf::Quad {
+                position: [cx, cy + cell_h - 2.0],
+                size: [cell_w, 2.0],
+                color: cursor_color,
+                border_color: [0.0; 4],
+                border_radius: [0.0; 4],
+                border_width: 0.0,
+                shadow_color: [0.0; 4],
+                shadow_offset: [0.0; 2],
+                shadow_blur_radius: 0.0,
+            },
+            _ => sugarloaf::Quad {
+                position: [cx, cy],
+                size: [cell_w, cell_h],
+                color: [0.0; 4],
+                border_color: cursor_color,
+                border_radius: [0.0; 4],
+                border_width: 1.0,
+                shadow_color: [0.0; 4],
+                shadow_offset: [0.0; 2],
+                shadow_blur_radius: 0.0,
+            },
+        };
+
+        sugarloaf.set_objects(vec![
+            Object::RichText(RichText {
+                id: rt_id,
+                position: [0.0, 0.0],
+                lines: None,
+            }),
+            Object::Quad(cursor_quad),
+        ]);
+    } else {
+        sugarloaf.set_objects(vec![Object::RichText(RichText {
+            id: rt_id,
+            position: [0.0, 0.0],
+            lines: None,
+        })]);
     }
 
-    // Show cursor as inverse block
-    let crow = grid.cursor_row;
-    let ccol = grid.cursor_col;
-    if crow < display_rows && ccol < display_cols {
-        let y = (display_rows - 1 - crow) as i32;
-        let tile = terminal.tile_mut([ccol as i32, y]);
-        let tmp = tile.fg_color;
-        tile.fg_color = tile.bg_color;
-        tile.bg_color = tmp;
-    }
+    // Render directly to window surface via sugarloaf's own wgpu swapchain
+    sugarloaf.render();
 }
+
+// --- Keyboard input forwarding ---
 
 fn forward_keyboard_input(
     state_res: Res<TerminalStateRes>,
@@ -508,19 +565,10 @@ fn forward_keyboard_input(
             continue;
         }
 
-        debug!("Terminal key: {:?}", event.logical_key);
-
         let bytes: Option<Vec<u8>> = match &event.logical_key {
             Key::Character(c) => {
                 let s = c.as_str();
-                // Handle Ctrl+C, Ctrl+D, etc
-                if s.len() == 1 {
-                    let ch = s.bytes().next().unwrap();
-                    // Characters below 0x20 are already control chars from Ctrl+key
-                    Some(vec![ch])
-                } else {
-                    Some(s.as_bytes().to_vec())
-                }
+                Some(s.as_bytes().to_vec())
             }
             Key::Enter => Some(b"\r".to_vec()),
             Key::Backspace => Some(b"\x7f".to_vec()),
@@ -534,11 +582,13 @@ fn forward_keyboard_input(
             Key::Home => Some(b"\x1b[H".to_vec()),
             Key::End => Some(b"\x1b[F".to_vec()),
             Key::Delete => Some(b"\x1b[3~".to_vec()),
+            Key::PageUp => Some(b"\x1b[5~".to_vec()),
+            Key::PageDown => Some(b"\x1b[6~".to_vec()),
             _ => None,
         };
 
         if let Some(bytes) = bytes {
-            if let Ok(mut writer) = state.writer.lock() {
+            if let Ok(mut writer) = state.pty_writer.lock() {
                 let _ = writer.write_all(&bytes);
                 let _ = writer.flush();
             }
@@ -546,14 +596,19 @@ fn forward_keyboard_input(
     }
 }
 
-fn destroy_terminal(
-    mut commands: Commands,
-    mut state_res: ResMut<TerminalStateRes>,
-    query: Query<Entity, With<TerminalMarker>>,
-) {
-    for entity in &query {
-        commands.entity(entity).despawn();
+// --- Destroy ---
+
+fn destroy_terminal(world: &mut World) {
+    let entities: Vec<Entity> = world
+        .query_filtered::<Entity, With<TerminalMarker>>()
+        .iter(world)
+        .collect();
+    for entity in entities {
+        world.despawn(entity);
     }
-    state_res.state = None;
+
+    world.resource_mut::<TerminalStateRes>().state = None;
+    world.remove_non_send_resource::<SugarloafState>();
+
     info!("Terminal world destroyed");
 }
