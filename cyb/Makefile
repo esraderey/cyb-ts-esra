@@ -1,4 +1,4 @@
-.PHONY: dev build run clean check test dmg nu-build
+.PHONY: dev build run clean check test dmg
 
 # Development: run cyb-shell (Browser mode loads https://localhost:3001)
 # Start cyb-ts dev server first: cd .. && deno task start
@@ -31,20 +31,12 @@ test:
 clean:
 	cargo clean
 
-# Build nushell binary (separate workspace)
-nu-build:
-	cargo build --release --manifest-path vendor/nushell/Cargo.toml
-
 # Build macOS .dmg
-dmg: release nu-build
+dmg: release
 	rm -rf target/release/cyb.app
 	mkdir -p target/release/cyb.app/Contents/MacOS
 	mkdir -p target/release/cyb.app/Contents/Resources
 	cp target/release/cyb-shell target/release/cyb.app/Contents/MacOS/cyb-shell
-	cp vendor/nushell/target/release/nu target/release/cyb.app/Contents/MacOS/nu
-	mkdir -p target/release/cyb.app/Contents/Resources/nushell
-	cp cyb-shell/assets/nu-config/env.nu target/release/cyb.app/Contents/Resources/nushell/
-	cp cyb-shell/assets/nu-config/config.nu target/release/cyb.app/Contents/Resources/nushell/
 	@if [ -d "cyb-shell/web-dist" ]; then \
 		cp -r cyb-shell/web-dist target/release/cyb.app/Contents/Resources/web-dist; \
 	fi
