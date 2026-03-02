@@ -5,43 +5,41 @@ use wry::{Rect, WebView, WebViewBuilder};
 
 use super::WorldState;
 
-pub struct BrowserWorldPlugin;
+pub struct LegacyWorldPlugin;
 
-pub(crate) struct WryWebView {
+pub(crate) struct LegacyWebView {
     pub webview: WebView,
 }
 
-impl Plugin for BrowserWorldPlugin {
+impl Plugin for LegacyWorldPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(WorldState::Browser), show_browser)
-            .add_systems(OnExit(WorldState::Browser), hide_browser)
+        app.add_systems(OnEnter(WorldState::Legacy), show_legacy)
+            .add_systems(OnExit(WorldState::Legacy), hide_legacy)
             .add_systems(
                 Update,
-                browser_update.run_if(in_state(WorldState::Browser)),
+                legacy_update.run_if(in_state(WorldState::Legacy)),
             );
     }
 }
 
-fn show_browser(world: &mut World) {
-    if let Some(wv) = world.get_non_send_resource::<WryWebView>() {
+fn show_legacy(world: &mut World) {
+    if let Some(wv) = world.get_non_send_resource::<LegacyWebView>() {
         let _ = wv.webview.set_visible(true);
-        // Update bounds in case window resized while hidden
-        update_webview_bounds(world);
-        info!("Browser WebView shown (persisted)");
+        update_legacy_bounds(world);
+        info!("Legacy WebView shown (persisted)");
         return;
     }
 
-    // First time — create WebView
-    create_browser_webview(world);
+    create_legacy_webview(world);
 }
 
-fn create_browser_webview(world: &mut World) {
+fn create_legacy_webview(world: &mut World) {
     let primary_entity = world
         .query_filtered::<Entity, With<PrimaryWindow>>()
         .single(world);
     let Ok(entity) = primary_entity else { return };
 
-    let created = WINIT_WINDOWS.with(|ww| {
+    let result = WINIT_WINDOWS.with(|ww| {
         let ww = ww.borrow();
         let Some(window_wrapper) = ww.get_window(entity) else {
             return None;
@@ -50,52 +48,49 @@ fn create_browser_webview(world: &mut World) {
         let inner_size = window_wrapper.inner_size();
 
         let url = if cfg!(debug_assertions) {
-            "https://localhost:3001"
+            "https://localhost:3001".to_string()
         } else {
-            "https://cyb.ai"
+            "https://cyb.ai".to_string()
         };
 
         match WebViewBuilder::new()
-            .with_url(url)
+            .with_url(&url)
             .with_bounds(Rect {
                 position: wry::dpi::PhysicalPosition::new(0, 0).into(),
                 size: wry::dpi::PhysicalSize::new(inner_size.width, inner_size.height).into(),
-            })
-            .with_ipc_handler(|msg| {
-                info!("IPC from webview: {:?}", msg);
             })
             .with_devtools(cfg!(debug_assertions))
             .build_as_child(&**window_wrapper)
         {
             Ok(webview) => {
-                info!("Browser WebView created, loading {}", url);
+                info!("Legacy world created, loading {}", url);
                 Some(webview)
             }
             Err(e) => {
-                warn!("Failed to create browser WebView: {}", e);
+                warn!("Failed to create Legacy WebView: {}", e);
                 None
             }
         }
     });
 
-    if let Some(webview) = created {
-        world.insert_non_send_resource(WryWebView { webview });
+    if let Some(webview) = result {
+        world.insert_non_send_resource(LegacyWebView { webview });
     }
 }
 
-fn hide_browser(world: &mut World) {
-    if let Some(wv) = world.get_non_send_resource::<WryWebView>() {
+fn hide_legacy(world: &mut World) {
+    if let Some(wv) = world.get_non_send_resource::<LegacyWebView>() {
         let _ = wv.webview.set_visible(false);
-        info!("Browser WebView hidden (state persisted)");
+        info!("Legacy WebView hidden (state persisted)");
     }
 }
 
-fn browser_update(world: &mut World) {
-    update_webview_bounds(world);
+fn legacy_update(world: &mut World) {
+    update_legacy_bounds(world);
 }
 
-fn update_webview_bounds(world: &mut World) {
-    let Some(wv) = world.remove_non_send_resource::<WryWebView>() else {
+fn update_legacy_bounds(world: &mut World) {
+    let Some(wv) = world.remove_non_send_resource::<LegacyWebView>() else {
         return;
     };
 

@@ -1,35 +1,33 @@
 use bevy::prelude::*;
 use super::WorldState;
 
-pub struct GameWorldPlugin;
+pub struct InterfaceWorldPlugin;
 
 #[derive(Resource, Default)]
-struct GameTick(u64);
+struct InterfaceTick(u64);
 
 #[derive(Component)]
-struct GameSceneMarker;
+struct InterfaceMarker;
 
-impl Plugin for GameWorldPlugin {
+impl Plugin for InterfaceWorldPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<GameTick>()
-            .add_systems(OnEnter(WorldState::Game), show_game_scene)
-            .add_systems(OnExit(WorldState::Game), hide_game_scene)
+        app.init_resource::<InterfaceTick>()
+            .add_systems(OnEnter(WorldState::Interface), show_interface)
+            .add_systems(OnExit(WorldState::Interface), hide_interface)
             .add_systems(
                 Update,
-                rotate_cube.run_if(in_state(WorldState::Game)),
+                rotate_cube.run_if(in_state(WorldState::Interface)),
             );
     }
 }
 
-fn show_game_scene(world: &mut World) {
-    // Check if scene already exists
+fn show_interface(world: &mut World) {
     let existing: Vec<Entity> = world
-        .query_filtered::<Entity, With<GameSceneMarker>>()
+        .query_filtered::<Entity, With<InterfaceMarker>>()
         .iter(world)
         .collect();
 
     if !existing.is_empty() {
-        // Already created — show everything
         for entity in &existing {
             if let Some(mut vis) = world.get_mut::<Visibility>(*entity) {
                 *vis = Visibility::Visible;
@@ -38,11 +36,10 @@ fn show_game_scene(world: &mut World) {
                 cam.is_active = true;
             }
         }
-        info!("Game scene shown (persisted)");
+        info!("Interface scene shown (persisted)");
         return;
     }
 
-    // First time — spawn with world.spawn() for immediate materialization
     let mut meshes = world.resource_mut::<Assets<Mesh>>();
     let cube_mesh = meshes.add(Cuboid::new(1.0, 1.0, 1.0));
 
@@ -60,14 +57,14 @@ fn show_game_scene(world: &mut World) {
             ..default()
         },
         Transform::from_xyz(0.0, 2.0, 5.0).looking_at(Vec3::ZERO, Vec3::Y),
-        GameSceneMarker,
+        InterfaceMarker,
     ));
 
     world.spawn((
         Mesh3d(cube_mesh),
         MeshMaterial3d(cube_material),
         Transform::default(),
-        GameSceneMarker,
+        InterfaceMarker,
     ));
 
     world.spawn((
@@ -76,13 +73,13 @@ fn show_game_scene(world: &mut World) {
             ..default()
         },
         Transform::from_rotation(Quat::from_euler(EulerRot::XYZ, -0.5, 0.5, 0.0)),
-        GameSceneMarker,
+        InterfaceMarker,
     ));
 }
 
-fn hide_game_scene(world: &mut World) {
+fn hide_interface(world: &mut World) {
     let entities: Vec<Entity> = world
-        .query_filtered::<Entity, With<GameSceneMarker>>()
+        .query_filtered::<Entity, With<InterfaceMarker>>()
         .iter(world)
         .collect();
     for entity in &entities {
@@ -93,13 +90,13 @@ fn hide_game_scene(world: &mut World) {
             cam.is_active = false;
         }
     }
-    info!("Game scene hidden (state persisted)");
+    info!("Interface scene hidden (state persisted)");
 }
 
 fn rotate_cube(
     time: Res<Time>,
-    mut query: Query<&mut Transform, (With<GameSceneMarker>, With<Mesh3d>)>,
-    mut tick: ResMut<GameTick>,
+    mut query: Query<&mut Transform, (With<InterfaceMarker>, With<Mesh3d>)>,
+    mut tick: ResMut<InterfaceTick>,
 ) {
     tick.0 += 1;
     for mut transform in &mut query {
