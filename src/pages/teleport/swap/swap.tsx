@@ -51,7 +51,7 @@ function Swap() {
   const poolPrice = useGetSwapPrice(tokenA, tokenB, tokenAPoolAmount, tokenBPoolAmount);
   const firstEffectOccured = useRef(false);
   const skipRecalc = useRef(false);
-  const amountChangeHandlerRef = useRef<typeof amountChangeHandler>(null!);
+  const tokenAAmountRef = useRef('');
   const [tokenABalance, setTokenABalance] = useState(0);
   const [tokenBBalance, setTokenBBalance] = useState(0);
 
@@ -145,32 +145,69 @@ function Swap() {
         setSwapPrice(0);
       }
 
+      const counterPairStr = counterPairAmount.toString(10);
       if (isReverse) {
-        setTokenBAmount(inputAmount);
-        setTokenAAmount(counterPairAmount.toString(10));
+        setTokenBAmount(String(inputAmount));
+        setTokenAAmount(counterPairStr);
       } else {
-        setTokenAAmount(inputAmount);
-        setTokenBAmount(counterPairAmount.toString(10));
+        setTokenAAmount(String(inputAmount));
+        setTokenBAmount(counterPairStr);
       }
     },
     [tokenAPoolAmount, tokenB, tokenA, tokenBPoolAmount, tokenACoinDecimals, tokenBCoinDecimals]
   );
 
+  // Recalculate only the output (tokenB + swapPrice) without touching tokenA.
+  // This prevents the feedback loop where setting tokenA triggers InputNumber
+  // re-render → onValueChange → amountChangeHandler → setTokenA → loop.
+  const recalcOutput = useCallback(
+    (inputAmount: string) => {
+      if (tokenAPoolAmount && tokenBPoolAmount && Number(inputAmount) > 0) {
+        const state = {
+          tokenB,
+          tokenA,
+          tokenBPoolAmount,
+          tokenAPoolAmount,
+          coinDecimalsA: tokenACoinDecimals,
+          coinDecimalsB: tokenBCoinDecimals,
+          isReverse: false,
+        };
+
+        const { counterPairAmount, price } = calculatePairAmount(inputAmount, state);
+        setSwapPrice(price.toNumber());
+        setTokenBAmount(counterPairAmount.toString(10));
+      } else {
+        setSwapPrice(0);
+        setTokenBAmount('0');
+      }
+    },
+    [tokenAPoolAmount, tokenB, tokenA, tokenBPoolAmount, tokenACoinDecimals, tokenBCoinDecimals]
+  );
+
+  const recalcOutputRef = useRef<typeof recalcOutput>(null!);
   useEffect(() => {
-    amountChangeHandlerRef.current = amountChangeHandler;
-  }, [amountChangeHandler]);
+    recalcOutputRef.current = recalcOutput;
+  }, [recalcOutput]);
+
+  // Keep tokenAAmountRef in sync
+  useEffect(() => {
+    tokenAAmountRef.current = tokenAAmount;
+  }, [tokenAAmount]);
 
   useEffect(() => {
-    // update swap price for current amount tokenA
+    // Recalculate output when pool data changes or update is triggered.
+    // tokenAAmount is read from ref to avoid being a dependency —
+    // user input already calls amountChangeHandler directly.
     if (skipRecalc.current) {
       skipRecalc.current = false;
       return;
     }
-    if (Number(tokenAAmount) > 0) {
-      amountChangeHandlerRef.current(tokenAAmount, TokenSetterId.tokenAAmount);
+    const amount = tokenAAmountRef.current;
+    if (Number(amount) > 0) {
+      recalcOutputRef.current(amount);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [update, tokenAAmount, tokenAPoolAmount, tokenBPoolAmount]);
+  }, [update, tokenAPoolAmount, tokenBPoolAmount]);
 
   const validInputAmountTokenA = useMemo(() => {
     const isValid = Number(tokenAAmount) > 0 && !!tokenABalance;
@@ -301,30 +338,20 @@ function Swap() {
 
   useEffect(() => {
     if (firstEffectOccured.current) {
-      const query = {
-        from: tokenA,
-        to: tokenB,
-      };
-
-      if (Number(tokenAAmount) > 0) {
-        query.amount = tokenAAmount;
-      }
-
-      setSearchParams(createSearchParams(query), { replace: true });
+      setSearchParams(createSearchParams({ from: tokenA, to: tokenB }), { replace: true });
     } else {
       firstEffectOccured.current = true;
       const param = Object.fromEntries(searchParams.entries());
       if (Object.keys(param).length > 0) {
-        const { from, to, amount } = param;
-        setTokenA(from);
-        setTokenB(to);
-        if (Number(amount) > 0) {
-          setTokenAAmount(amount);
-        }
+        const { from, to } = param;
+        if (from) setTokenA(from);
+        if (to) setTokenB(to);
+        // clean URL: remove stale params like amount
+        setSearchParams(createSearchParams({ from: from || tokenA, to: to || tokenB }), { replace: true });
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tokenA, tokenB, tokenAAmount, setSearchParams]);
+  }, [tokenA, tokenB, setSearchParams]);
 
   const getPercentsOfToken = useCallback(() => {
     return tokenABalance > 0
