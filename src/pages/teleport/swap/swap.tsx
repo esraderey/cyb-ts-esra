@@ -50,6 +50,8 @@ function Swap() {
   const [isExceeded, setIsExceeded] = useState<boolean>(false);
   const poolPrice = useGetSwapPrice(tokenA, tokenB, tokenAPoolAmount, tokenBPoolAmount);
   const firstEffectOccured = useRef(false);
+  const skipRecalc = useRef(false);
+  const amountChangeHandlerRef = useRef<typeof amountChangeHandler>(null!);
   const [tokenABalance, setTokenABalance] = useState(0);
   const [tokenBBalance, setTokenBBalance] = useState(0);
 
@@ -155,12 +157,20 @@ function Swap() {
   );
 
   useEffect(() => {
+    amountChangeHandlerRef.current = amountChangeHandler;
+  }, [amountChangeHandler]);
+
+  useEffect(() => {
     // update swap price for current amount tokenA
-    if (update || new BigNumber(tokenAAmount).comparedTo(0)) {
-      amountChangeHandler(tokenAAmount, TokenSetterId.tokenAAmount);
+    if (skipRecalc.current) {
+      skipRecalc.current = false;
+      return;
+    }
+    if (Number(tokenAAmount) > 0) {
+      amountChangeHandlerRef.current(tokenAAmount, TokenSetterId.tokenAAmount);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [update, amountChangeHandler, tokenAAmount]);
+  }, [update, tokenAAmount, tokenAPoolAmount, tokenBPoolAmount]);
 
   const validInputAmountTokenA = useMemo(() => {
     const isValid = Number(tokenAAmount) > 0 && !!tokenABalance;
@@ -266,6 +276,10 @@ function Swap() {
   }
 
   const updateFunc = useCallback(() => {
+    skipRecalc.current = true;
+    setTokenAAmount('');
+    setTokenBAmount('');
+    setSwapPrice(0);
     setUpdate((item) => item + 1);
     dataSwapTxs.refetch();
     refreshBalances();
@@ -287,7 +301,6 @@ function Swap() {
 
   useEffect(() => {
     if (firstEffectOccured.current) {
-      // eslint-disable-next-line react-hooks/exhaustive-deps
       const query = {
         from: tokenA,
         to: tokenB,
@@ -307,11 +320,11 @@ function Swap() {
         setTokenB(to);
         if (Number(amount) > 0) {
           setTokenAAmount(amount);
-          amountChangeHandler(amount, TokenSetterId.tokenAAmount);
         }
       }
     }
-  }, [tokenA, tokenB, tokenAAmount, setSearchParams, searchParams, amountChangeHandler]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tokenA, tokenB, tokenAAmount, setSearchParams]);
 
   const getPercentsOfToken = useCallback(() => {
     return tokenABalance > 0
@@ -375,7 +388,7 @@ function Swap() {
                 <Slippage value={useGetSlippage} />
                 {Number(tokenAAmount) > 0 && (
                   <span style={{ color: 'var(--grayscale-dark)', fontSize: '0.75rem', marginLeft: 8 }}>
-                    fee: <span style={{ color: 'var(--grayscale-primary)' }}>{new BigNumber(tokenAAmount).multipliedBy(0.003).dp(tokenACoinDecimals > 0 ? tokenACoinDecimals : 2).toString()}</span> (0.3%)
+                    fee (0.3%): <span style={{ color: 'var(--grayscale-primary)' }}>{new BigNumber(tokenAAmount).multipliedBy(0.003).dp(tokenACoinDecimals > 0 ? tokenACoinDecimals : 2).toString()}</span>
                   </span>
                 )}
               </>
