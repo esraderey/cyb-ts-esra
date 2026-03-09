@@ -334,19 +334,18 @@ function Swap() {
     poolPrice,
   };
 
-  const adviserError = useMemo(() => {
+  const adviserText = useMemo(() => {
     if (belowMinAmount) {
       return 'amount too small: minimum 100 base units required by chain';
     }
     if (exceedsMaxOrderRatio) {
       return 'amount exceeds 10% of pool reserves';
     }
-    return undefined;
+    return 'swap tokens';
   }, [belowMinAmount, exceedsMaxOrderRatio]);
 
   useAdviserTexts({
-    defaultText: 'swap tokens',
-    error: adviserError,
+    defaultText: adviserText,
   });
 
   return (
@@ -371,7 +370,16 @@ function Swap() {
             onChange={setPercentageBalanceHook}
             onSwapClick={() => tokenChange()}
             tokenPair={pairPrice}
-            text={<Slippage value={useGetSlippage} />}
+            text={
+              <>
+                <Slippage value={useGetSlippage} />
+                {Number(tokenAAmount) > 0 && (
+                  <span style={{ color: 'var(--grayscale-dark)', fontSize: '0.75rem', marginLeft: 8 }}>
+                    fee: <span style={{ color: 'var(--grayscale-primary)' }}>{new BigNumber(tokenAAmount).multipliedBy(0.003).dp(tokenACoinDecimals > 0 ? tokenACoinDecimals : 2).toString()}</span> (0.3%)
+                  </span>
+                )}
+              </>
+            }
           />
 
           <TokenSetterSwap
