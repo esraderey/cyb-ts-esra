@@ -192,6 +192,16 @@ function Swap() {
     return 0;
   }, [poolPrice, swapPrice]);
 
+  const CHAIN_MIN_OFFER_AMOUNT = 100; // chain rejects offers below 100 base units
+
+  const belowMinAmount = useMemo(() => {
+    if (!tokenAAmount || Number(tokenAAmount) <= 0) {
+      return false;
+    }
+    const rawAmount = new BigNumber(tokenAAmount).shiftedBy(tokenACoinDecimals);
+    return rawAmount.isLessThan(CHAIN_MIN_OFFER_AMOUNT);
+  }, [tokenAAmount, tokenACoinDecimals]);
+
   const exceedsMaxOrderRatio = useMemo(() => {
     if (!tokenAPoolAmount || !tokenAAmount || !tokenACoinDecimals) {
       return false;
@@ -207,13 +217,13 @@ function Swap() {
 
     const validTokenAmountA = !validInputAmountTokenA && Number(tokenAAmount) > 0;
 
-    // check pool, check slippage 3%, check max order ratio 10%
-    if (poolPrice !== 0 && validTokenAmountA && useGetSlippage < 3 && !exceedsMaxOrderRatio) {
+    // check pool, check slippage 3%, check max order ratio 10%, check min amount
+    if (poolPrice !== 0 && validTokenAmountA && useGetSlippage < 3 && !exceedsMaxOrderRatio && !belowMinAmount) {
       exceeded = false;
     }
 
     setIsExceeded(exceeded);
-  }, [poolPrice, tokenAAmount, validInputAmountTokenA, useGetSlippage, exceedsMaxOrderRatio]);
+  }, [poolPrice, tokenAAmount, validInputAmountTokenA, useGetSlippage, exceedsMaxOrderRatio, belowMinAmount]);
 
   const pairPrice = useMemo(() => {
     const isValid = poolPrice && tokenA && tokenB;
@@ -324,8 +334,19 @@ function Swap() {
     poolPrice,
   };
 
+  const adviserError = useMemo(() => {
+    if (belowMinAmount) {
+      return 'amount too small: minimum 100 base units required by chain';
+    }
+    if (exceedsMaxOrderRatio) {
+      return 'amount exceeds 10% of pool reserves';
+    }
+    return undefined;
+  }, [belowMinAmount, exceedsMaxOrderRatio]);
+
   useAdviserTexts({
     defaultText: 'swap tokens',
+    error: adviserError,
   });
 
   return (
