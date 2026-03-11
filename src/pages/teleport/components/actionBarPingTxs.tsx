@@ -22,25 +22,39 @@ function ActionBarPingTxs({ stageActionBarStaps }) {
     stageActionBarStaps;
 
   useEffect(() => {
+    let retries = 0;
+    const MAX_RETRIES = 20;
+
     const confirmTx = async () => {
       if (queryClient && txHash) {
         setStage(STAGE_CONFIRMING);
-        const response = await queryClient.getTx(txHash);
-        if (response !== null) {
-          if (response.code === 0) {
-            setStage(STAGE_CONFIRMED);
-            setTxHeight(response.height);
-            if (updateFunc) {
-              updateFunc();
+        try {
+          const response = await queryClient.getTx(txHash);
+          if (response !== null) {
+            if (response.code === 0) {
+              setStage(STAGE_CONFIRMED);
+              setTxHeight(response.height);
+              if (updateFunc) {
+                updateFunc();
+              }
+              return;
             }
-            return;
+            if (response.code) {
+              setStage(STAGE_ERROR);
+              setTxHeight(response.height);
+              setErrorMessage(response.rawLog);
+              return;
+            }
           }
-          if (response.code) {
-            setStage(STAGE_ERROR);
-            setTxHeight(response.height);
-            setErrorMessage(response.rawLog);
-            return;
-          }
+        } catch (error) {
+          console.error('getTx error:', error);
+        }
+
+        retries += 1;
+        if (retries >= MAX_RETRIES) {
+          setStage(STAGE_ERROR);
+          setErrorMessage(`transaction confirmation timed out after ${MAX_RETRIES * 1.5}s — check tx ${txHash} manually`);
+          return;
         }
         setTimeout(confirmTx, 1500);
       }
