@@ -73,7 +73,7 @@ function TokenSetterSwap({
         <InputNumberDecimalScale
           id={id}
           value={tokenAmountValue}
-          onValueChange={(value) => amountChangeHandler(value, id)}
+          onValueChange={(value, event) => { if (event) amountChangeHandler(value, id); }}
           title={`choose amount to ${textAction}`}
           validAmount={validInputAmount}
           validAmountMessage={validAmountMessage}
