@@ -24,6 +24,8 @@ type Props = {
   autoFocus?: boolean;
   validAmountMessage?: boolean;
   validAmountMessageText?: string;
+  warningAmount?: boolean;
+  warningAmountText?: string;
   onChangeSelect: React.Dispatch<React.SetStateAction<string>>;
   amountChangeHandler: (values: string, id: TokenSetterId) => void;
 };
@@ -41,6 +43,8 @@ function TokenSetterSwap({
   autoFocus,
   validAmountMessage,
   validAmountMessageText,
+  warningAmount,
+  warningAmountText,
 }: Props) {
   const reduceOptions = useMemo(() => {
     const tempList: SelectOption[] = [];
@@ -78,6 +82,8 @@ function TokenSetterSwap({
           validAmount={validInputAmount}
           validAmountMessage={validAmountMessage}
           validAmountMessageText={validAmountMessageText}
+          warningAmount={warningAmount}
+          warningAmountText={warningAmountText}
           tokenSelect={valueSelect}
           autoFocus={autoFocus}
         />
