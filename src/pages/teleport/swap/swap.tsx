@@ -402,6 +402,8 @@ function Swap() {
             onChangeSelect={setTokenA}
             amountChangeHandler={amountChangeHandler}
             validInputAmount={validInputAmountTokenA}
+            warningAmount={exceedsMaxOrderRatio}
+            warningAmountText="exceeds 10% of pool reserves"
             autoFocus
           />
 
